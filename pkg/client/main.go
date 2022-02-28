@@ -77,7 +77,7 @@ func main() {
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 
-	defer func() {
+	defer func() { //cleanup
 		err := conn.Close()
 		if err != nil {
 			log.Println(err)

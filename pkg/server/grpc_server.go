@@ -7,11 +7,15 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"log"
+	"net"
 )
 
 var (
 	adminIsConnected = false
 	sensorCount      = make(chan int64, 1)
+	gs               *grpc.Server
+	lis              net.Listener
 )
 
 const (
@@ -85,10 +89,29 @@ func (s *server) SensorMeasure(ctx context.Context, in *pb.Measure) (*pb.Measure
 	return &pb.MeasureRes{}, nil
 }
 
-func NewGRPCServer() *grpc.Server {
-	s := grpc.NewServer()
-	pb.RegisterSensorStreamServer(s, &server{})
-	pb.RegisterClientInfoServer(s, &server{})
+//implementation of protocolServer
+func (s *server) createServer() error {
+	var err error
+	lis, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", *grpcPort))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	gs = grpc.NewServer()
+	pb.RegisterSensorStreamServer(gs, &server{})
+	pb.RegisterClientInfoServer(gs, &server{})
 	sensorCount <- 1
-	return s
+
+	log.Printf("server listening at %v", lis.Addr())
+	return gs.Serve(lis)
 }
+
+func (s *server) cleanup() {
+	adminIsConnected = false
+	gs.GracefulStop()
+	if err := lis.Close(); err != nil {
+	}
+	close(sensorCount)
+}
+
+//implementation of sensorDB interface

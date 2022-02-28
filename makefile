@@ -12,3 +12,6 @@ run_client:
 
 run_server:
 	go run pkg/server/*.go -v
+
+run_stream:
+	go run pkg/sensor/main.go
