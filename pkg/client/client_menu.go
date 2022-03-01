@@ -26,6 +26,12 @@ func dayOpt() int {
 	}
 }
 
+/*
+	return values:
+	1-6 :	number of days before today
+	8	:	all week
+	9	:	today
+*/
 func showDMenu() int {
 	var opt int
 	for {
@@ -38,7 +44,7 @@ func showDMenu() int {
 		case 2:
 			return dayOpt()
 		case 3:
-			return 0
+			return 9
 		case 5:
 			return -1
 		default:

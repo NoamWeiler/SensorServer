@@ -5,8 +5,10 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"github.com/jedib0t/go-pretty/table"
 	"google.golang.org/grpc"
 	"log"
+	"os"
 	"strings"
 	"time"
 )
@@ -64,6 +66,20 @@ func unpackError(e error) string {
 	return s[strings.LastIndex(s, "=")+2:]
 }
 
+func printResult(s string) {
+	arr := strings.Split(s, ",")
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.AppendHeader(table.Row{"#SERIAL", "DAY", "MIN", "MAX", "AVG"})
+	for i := 0; i < len(arr); i += 5 {
+		t.AppendRows([]table.Row{
+			{arr[i], arr[i+1], arr[i+2], arr[i+3], arr[i+4]},
+		})
+	}
+	//t.AppendFooter(table.Row{"", "", "Total", 10000})
+	t.Render()
+}
+
 func main() {
 	flag.Parse()
 	isConnected := false
@@ -104,8 +120,9 @@ forLoop:
 				res, err := c.GetInfo(ctx, ir)
 				if err != nil {
 					fmt.Println(err)
-				} else {
-					fmt.Println(res)
+				} else { //got response from server
+					fmt.Println("RAW_RES:", res)
+					printResult(res.GetResponce())
 				}
 			case 2: //disconnect
 				r, err := c.DisconnectClient(ctx, &pb.DisConnReq{})

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/bojand/ghz/printer"
 	"github.com/bojand/ghz/runner"
 	"os"
 )
@@ -21,12 +20,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	p := printer.ReportPrinter{
-		Out:    os.Stdout,
-		Report: report,
-	}
+	//p := printer.ReportPrinter{
+	//	Out:    os.Stdout,
+	//	Report: report,
+	//}
 
-	if err2 := p.Print("pretty"); err2 != nil {
-		fmt.Println(err2)
-	}
+	//if err2 := p.Print("pretty"); err2 != nil {
+	//	fmt.Println(err2)
+	//}
+
+	fmt.Println(report)
 }
