@@ -79,6 +79,7 @@ func printResult(s string) {
 	arr := strings.Split(s, ",")
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
+	t.SetStyle(table.StyleLight)
 	t.AppendHeader(table.Row{"#SERIAL", "DAY", "MIN", "MAX", "AVG"})
 	for i := 0; i < len(arr)-1; i += 5 {
 		if arr[i] != "" && i > 0 {
