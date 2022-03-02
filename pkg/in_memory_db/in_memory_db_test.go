@@ -2,7 +2,7 @@ package In_memo_db
 
 import (
 	"fmt"
-	pb "grpc_db/pkg/grpc_db"
+	grpc_db "grpc_db/pkg/grpc_db"
 	"strings"
 	"testing"
 	"time"
@@ -37,16 +37,16 @@ func TestGetInfoBySensor_emptyDB(t *testing.T) {
 
 func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 	testName := "TestGetInfoBySensor_SensorsNoTraffic"
-	var tmpBuff strings.Builder
+	var tmgrpc_dbuff strings.Builder
 	mapDB := SensorMap()
 	for i := 1; i < 50; i++ {
 		s := fmt.Sprintf("sensor_%d", i)
 		mapDB.addSensorToMap(s)
 		for i := 0; i < 7; i += 1 {
-			fmt.Fprintf(&tmpBuff, fmt.Sprintf("%s,%s,0,0,0,", s, time.Weekday(i)))
+			fmt.Fprintf(&tmgrpc_dbuff, fmt.Sprintf("%s,%s,0,0,0,", s, time.Weekday(i)))
 		}
 	}
-	res := tmpBuff.String()
+	res := tmgrpc_dbuff.String()
 	t.Run(testName, func(t *testing.T) {
 		s := mapDB.getInfoAllSensors(8)
 		if len(s) != len(res) {
@@ -59,8 +59,8 @@ func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 func TestAddMeasure(t *testing.T) {
 	testName, sname := "TestAddMeasure", "sensor_1"
 	mapDB := SensorMap()
-	mapDB.AddMeasure(&pb.Measure{Serial: sname, M: 10})
-	mapDB.AddMeasure(&pb.Measure{Serial: sname, M: 30})
+	mapDB.AddMeasure(&grpc_db.Measure{Serial: sname, M: 10})
+	mapDB.AddMeasure(&grpc_db.Measure{Serial: sname, M: 30})
 
 	var tests = []string{d0, d1, d2, d3, d4, d5, d6}
 	today := int(time.Now().Weekday())

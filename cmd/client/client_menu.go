@@ -1,9 +1,9 @@
 package main
 
 import (
+	grpc_db "SensorServer/pkg/grpc_db"
 	"errors"
 	"fmt"
-	pb "grpc_db/pkg/grpc_db"
 )
 
 const userExit = "user Exit"
@@ -104,12 +104,12 @@ func showMenu() (int32, string) {
 	return int32(d), s
 }
 
-func createRequest() *pb.InfoReq {
+func createRequest() *grpc_db.InfoReq {
 	d, s := showMenu()
-	return &pb.InfoReq{DayBefore: d, SensorName: s}
+	return &grpc_db.InfoReq{DayBefore: d, SensorName: s}
 }
 
-func clientMenu() (*pb.InfoReq, error) {
+func clientMenu() (*grpc_db.InfoReq, error) {
 	cr := createRequest()
 	if cr.SensorName == userExit || cr.DayBefore == -1 {
 		return nil, errors.New(userExit)

@@ -1,7 +1,7 @@
 package In_memo_db
 
 import (
-	pb "SensorServer/pkg/grpc_db"
+	grpc_db "SensorServer/pkg/grpc_db"
 	"fmt"
 	"log"
 	"math"
@@ -79,7 +79,7 @@ func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
 	sw.week[d].resetDay()
 }
 
-func (sm sensorMap) AddMeasure(m *pb.Measure) {
+func (sm sensorMap) AddMeasure(m *grpc_db.Measure) {
 	serial := m.GetSerial()
 	_, ok := sm[serial]
 	if !ok {
@@ -142,7 +142,7 @@ func (sm sensorMap) getInfoBySensor(s string, d int) string {
 	return fmt.Sprintf("%s%s", s, output.String())
 }
 
-func (sm sensorMap) GetInfo(res *pb.InfoReq) string {
+func (sm sensorMap) GetInfo(res *grpc_db.InfoReq) string {
 	d := int(res.GetDayBefore())
 	s := res.GetSensorName()
 	if s == "all" {
