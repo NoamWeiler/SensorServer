@@ -9,6 +9,7 @@ import (
 	"google.golang.org/grpc/status"
 	"log"
 	"net"
+	"time"
 )
 
 var (
@@ -17,6 +18,7 @@ var (
 	gs               *grpc.Server
 	lis              net.Listener
 	db               sensorMap
+	GlobalDay        time.Weekday
 )
 
 const (
@@ -69,6 +71,7 @@ func (s *server) DisconnectClient(ctx context.Context, in *pb.DisConnReq) (*pb.C
 func (s *server) GetInfo(ctx context.Context, in *pb.InfoReq) (*pb.InfoRes, error) {
 	f := "GetInfo"
 	debug(f, fmt.Sprintf("args:%v", in))
+	dayCleanup(db)
 	res := getInfo(db, in)
 	return &pb.InfoRes{Responce: res}, nil
 }
@@ -88,6 +91,7 @@ func (s *server) ConnectSensor(ctx context.Context, in *pb.ConnSensorReq) (*pb.C
 func (s *server) SensorMeasure(ctx context.Context, in *pb.Measure) (*pb.MeasureRes, error) {
 	f := "SensorMeasure"
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
+	dayCleanup(db)
 	go addMeasure(db, in) //run in parallel
 	return &pb.MeasureRes{}, nil
 }
@@ -99,6 +103,9 @@ func (s *server) createServer() error {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+
+	// the DB is support only 1 week, so need to do know if day have been changed
+	GlobalDay = time.Now().Weekday()
 
 	gs = grpc.NewServer()
 	pb.RegisterSensorStreamServer(gs, &server{})
@@ -127,4 +134,8 @@ func addMeasure(db sensorDB, in *pb.Measure) {
 
 func getInfo(db sensorDB, r *pb.InfoReq) string {
 	return db.getInfo(r)
+}
+
+func dayCleanup(db sensorDB) {
+	db.dayCleanup()
 }

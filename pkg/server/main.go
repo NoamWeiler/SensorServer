@@ -23,6 +23,7 @@ type server struct {
 type sensorDB interface {
 	addMeasure(measure *pb.Measure)
 	getInfo(r *pb.InfoReq) string
+	dayCleanup()
 }
 
 // interface to represent a server

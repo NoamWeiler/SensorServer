@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type sensorMap map[string]sensorWeekDB
+type sensorMap map[string]*sensorWeekDB
 
 type sensorDayDB struct {
 	max   int
@@ -66,6 +66,13 @@ func (sw *sensorWeekDB) addMeasure(m int) {
 	defer sw.mu.Unlock()
 	dayIndex := int(time.Now().Weekday()) //Sunday=0
 	sw.week[dayIndex].addMeasure(m)
+}
+
+func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
+	sw.mu.Lock()
+	defer sw.mu.Unlock()
+	d := int(weekday)
+	sw.week[d].resetDay()
 }
 
 func (sm sensorMap) addMeasure(m *pb.Measure) {
@@ -146,9 +153,42 @@ func (sm sensorMap) addSensorToMap(s string) {
 	for i, _ := range sww {
 		sww[i].resetDay()
 	}
-	sm[s] = sw
+	sm[s] = &sw
 }
 
 func SensorMap() sensorMap {
 	return sensorMap{}
+}
+
+/*
+	Update that occur every addMeasure and getInfo
+	The design:
+	Before client getInfo or sensor addMeasure -
+	Check if the day have been changed since last request
+	If not - continue
+	If so - need to clean the current day (run on parallel on all sensorWeekDB and tell then to reset the day)
+*/
+func (sm sensorMap) dayCleanup() {
+	fname := "dayCleanup"
+	var wg sync.WaitGroup
+	now := time.Now().Weekday()
+
+	//if same day - no need to cleanup day from all sensors
+	if GlobalDay == now {
+		return
+	}
+
+	debug(fname, "Starting day cleanup in DB")
+	wg.Add(len(sm))
+	for _, v := range sm {
+		go func(s *sensorWeekDB) {
+			defer wg.Done()
+			s.cleanDay(now)
+		}(v)
+	}
+
+	wg.Wait()
+	debug(fname, fmt.Sprintf("finished update,GlobalDay=%v\n", now))
+	GlobalDay = now
+
 }
