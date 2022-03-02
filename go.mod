@@ -31,10 +31,10 @@ require (
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
-	github.com/jedib0t/go-pretty v4.3.0+incompatible // indirect
+	github.com/jedib0t/go-pretty/v6 v6.2.7 // indirect
 	github.com/jhump/protoreflect v1.9.0 // indirect
 	github.com/jinzhu/configor v1.1.1 // indirect
-	github.com/mattn/go-runewidth v0.0.9 // indirect
+	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
@@ -43,6 +43,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
 	github.com/prometheus/common v0.4.0 // indirect
+	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	go.mongodb.org/mongo-driver v1.7.5 // indirect

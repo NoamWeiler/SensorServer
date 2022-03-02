@@ -19,8 +19,9 @@ type server struct {
 	pb.UnimplementedSensorStreamServer //hande sensors measures
 }
 
+//interface to represent DB functionalities
 type sensorDB interface {
-	addMeasure(measure *pb.Measure) //done
+	addMeasure(measure *pb.Measure)
 	getInfo(r *pb.InfoReq) string
 }
 
@@ -31,7 +32,7 @@ type protocolServer interface {
 }
 
 var (
-	verbose  = flag.Bool("v", false, "Verbose mode")
+	verbose  = flag.Bool("v", true, "Verbose mode")
 	grpcPort = flag.Int("port", 50051, "The server port")
 )
 
@@ -87,6 +88,6 @@ func main() {
 
 //TODO
 /*
-	1)	start working on the measures handling (include DB)
+	1)
 	2)
 */

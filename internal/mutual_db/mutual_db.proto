@@ -40,8 +40,6 @@ message InfoRes{
   string responce = 1;
 }
 
-
-
 /*
   Implementation of sensor
   Do 2 things:

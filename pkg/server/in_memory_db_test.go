@@ -71,7 +71,7 @@ func TestAddMeasure(t *testing.T) {
 			s := mapDB.getInfoBySensor(sname, curDay)
 			tt := tests[curDay]
 			if s != tt {
-				t.Errorf("got:\t%v\nwant:\t%v\n\n", s, tt)
+				t.Errorf("go t:\t%v\nwant:\t%v\n\n", s, tt)
 			}
 		})
 	}

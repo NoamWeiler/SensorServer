@@ -5,10 +5,12 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/jedib0t/go-pretty/table"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"google.golang.org/grpc"
 	"log"
+	"math"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,7 +24,7 @@ const (
 var (
 	addr    = flag.String("addr", "localhost:50051", "the address to connect to")
 	name    = flag.String("name", defaultName, "Name to greet")
-	verbose = flag.Bool("v", false, "Verbose mode")
+	verbose = flag.Bool("v", true, "Verbose mode")
 )
 
 func myPanic(e error) {
@@ -66,14 +68,25 @@ func unpackError(e error) string {
 	return s[strings.LastIndex(s, "=")+2:]
 }
 
+func printHelper(min, max, avg string) (string, string, string) {
+	if min == strconv.Itoa(math.MinInt) {
+		return "-", "-", "-"
+	}
+	return min, max, avg
+}
+
 func printResult(s string) {
 	arr := strings.Split(s, ",")
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"#SERIAL", "DAY", "MIN", "MAX", "AVG"})
-	for i := 0; i < len(arr); i += 5 {
+	for i := 0; i < len(arr)-1; i += 5 {
+		if arr[i] != "" && i > 0 {
+			t.AppendSeparator()
+		}
+		a, b, c := printHelper(arr[i+2], arr[i+3], arr[i+4])
 		t.AppendRows([]table.Row{
-			{arr[i], arr[i+1], arr[i+2], arr[i+3], arr[i+4]},
+			{arr[i], arr[i+1], a, b, c},
 		})
 	}
 	//t.AppendFooter(table.Row{"", "", "Total", 10000})
@@ -99,8 +112,6 @@ func main() {
 			log.Println(err)
 		}
 		defer cancel()
-		_, _ = c.DisconnectClient(ctx, &pb.DisConnReq{}) //disconnect by default on exit - my design
-
 	}()
 
 forLoop:
@@ -133,6 +144,7 @@ forLoop:
 					isConnected = false
 				}
 			case 3: //exit
+				_, _ = c.DisconnectClient(ctx, &pb.DisConnReq{}) //disconnect by default on exit - my design
 				break forLoop
 			default:
 			}

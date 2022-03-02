@@ -16,6 +16,7 @@ var (
 	sensorCount      = make(chan int64, 1)
 	gs               *grpc.Server
 	lis              net.Listener
+	db               sensorMap
 )
 
 const (
@@ -28,7 +29,7 @@ func returnError(s string) error {
 	if err != nil {
 		return err
 	}
-	debug("returnError", "err=nil")
+	debug("returnError", s)
 	return nil
 }
 
@@ -67,8 +68,9 @@ func (s *server) DisconnectClient(ctx context.Context, in *pb.DisConnReq) (*pb.C
 
 func (s *server) GetInfo(ctx context.Context, in *pb.InfoReq) (*pb.InfoRes, error) {
 	f := "GetInfo"
-	debug(f, fmt.Sprintf("enter, args:%v", in))
-	return &pb.InfoRes{Responce: "GOT YOUR REQUEST"}, nil
+	debug(f, fmt.Sprintf("args:%v", in))
+	res := getInfo(db, in)
+	return &pb.InfoRes{Responce: res}, nil
 }
 
 // SensorStream implementation
@@ -76,7 +78,7 @@ func (s *server) GetInfo(ctx context.Context, in *pb.InfoReq) (*pb.InfoRes, erro
 func (s *server) ConnectSensor(ctx context.Context, in *pb.ConnSensorReq) (*pb.ConnSensorRes, error) {
 	f := "ConnectSensor"
 	var num int64
-	debug(f, fmt.Sprintf("enter, args:%v", in))
+	debug(f, fmt.Sprintf("args:%v", in))
 	//get the next serial number and increase by 1 the value to the next
 	num = <-sensorCount
 	sensorCount <- num + 1
@@ -86,10 +88,11 @@ func (s *server) ConnectSensor(ctx context.Context, in *pb.ConnSensorReq) (*pb.C
 func (s *server) SensorMeasure(ctx context.Context, in *pb.Measure) (*pb.MeasureRes, error) {
 	f := "SensorMeasure"
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
+	go addMeasure(db, in) //run in parallel
 	return &pb.MeasureRes{}, nil
 }
 
-//implementation of protocolServer
+//implementation of protocolServer interface
 func (s *server) createServer() error {
 	var err error
 	lis, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", *grpcPort))
@@ -101,6 +104,9 @@ func (s *server) createServer() error {
 	pb.RegisterSensorStreamServer(gs, &server{})
 	pb.RegisterClientInfoServer(gs, &server{})
 	sensorCount <- 1
+
+	//DB
+	db = SensorMap()
 
 	log.Printf("server listening at %v", lis.Addr())
 	return gs.Serve(lis)
@@ -115,3 +121,10 @@ func (s *server) cleanup() {
 }
 
 //implementation of sensorDB interface
+func addMeasure(db sensorDB, in *pb.Measure) {
+	db.addMeasure(in)
+}
+
+func getInfo(db sensorDB, r *pb.InfoReq) string {
+	return db.getInfo(r)
+}

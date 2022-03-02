@@ -53,6 +53,13 @@ func (s *sensorDayDB) addMeasure(m int) {
 	}(s.max, m)
 }
 
+func (s *sensorDayDB) resetDay() {
+	s.max = math.MinInt
+	s.min = math.MaxInt
+	s.count = 0
+	s.sum = 0
+}
+
 //week implementation
 func (sw *sensorWeekDB) addMeasure(m int) {
 	sw.mu.Lock()
@@ -84,13 +91,10 @@ func (sm sensorMap) getInfoAllSensors(day int) string {
 	return output.String()
 }
 
-func buildDayString(s *strings.Builder, day *sensorDayDB, d int) {
+func buildDayString(day *sensorDayDB, d int) string {
 	a, b, c := day.getDayRes()
 	//order: sensorSerial,day,max,min,avg
-	_, err := fmt.Fprintf(s, "%v,%v,%v,%v,%v,", s, time.Weekday(d), a, b, c)
-	if err != nil {
-		debug("getInfoBySensor:", fmt.Sprintf("%v", err))
-	}
+	return fmt.Sprintf("%v,%v,%v,%v,", time.Weekday(d), a, b, c)
 }
 
 func (sm sensorMap) getInfoBySensor(s string, d int) string {
@@ -105,21 +109,26 @@ func (sm sensorMap) getInfoBySensor(s string, d int) string {
 	var output strings.Builder
 	switch d {
 	case 0, 1, 2, 3, 4, 5, 6:
-		buildDayString(&output, &elem.week[d], d)
-	case 8:
-		for i, d := range elem.week {
-			buildDayString(&output, &d, i)
+		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&elem.week[d], d)); err != nil {
+			log.Println(err)
 		}
-	case 9:
+	case 8: //all week
+		for i, d := range elem.week {
+			if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&d, i)); err != nil {
+				log.Println(err)
+			}
+		}
+	case 9: //today
 		today := int(time.Now().Weekday())
-		buildDayString(&output, &elem.week[today], today)
+		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&elem.week[today], today)); err != nil {
+			log.Println(err)
+		}
 	default:
 		log.Println("getInfoBySensor - error: wrong day option:", d)
 		return ""
 	}
 
 	return fmt.Sprintf("%s%s", s, output.String())
-
 }
 
 func (sm sensorMap) getInfo(res *pb.InfoReq) string {
@@ -135,8 +144,7 @@ func (sm sensorMap) addSensorToMap(s string) {
 	sw := sensorWeekDB{week: make([]sensorDayDB, 7)}
 	sww := sw.week
 	for i, _ := range sww {
-		sww[i].min = math.MaxInt
-		sww[i].max = math.MinInt
+		sww[i].resetDay()
 	}
 	sm[s] = sw
 }

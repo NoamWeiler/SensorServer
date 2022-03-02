@@ -10,8 +10,9 @@ ftw:
 run_client:
 	go run pkg/client/main.go pkg/client/client_menu.go
 
-run_server:
-	go run pkg/server/*.go -v
+
+run_server: $(verbose)
+	go run pkg/server/main.go pkg/server/grpc_server.go pkg/server/in_memory_db.go
 
 run_stream:
 	go run pkg/sensor/main.go
