@@ -1,11 +1,11 @@
 package main
 
 import (
+	grpc_db "SensorServer/pkg/grpc_db"
 	"flag"
 	"fmt"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
-	grpc_db "grpc_db/pkg/grpc_db"
 	"log"
 	"os"
 	"os/signal"

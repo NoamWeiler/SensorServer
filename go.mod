@@ -1,4 +1,4 @@
-module grpc_db
+module SensorServer
 
 go 1.18
 

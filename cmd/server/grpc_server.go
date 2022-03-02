@@ -1,7 +1,8 @@
 package main
 
 import (
-	grpc_db "github.com/noamweiler/SnsorServer/pkg/grpc_db"
+	grpc_db "SensorServer/pkg/grpc_db"
+	In_memo_db "SensorServer/pkg/in_memory_db"
 	"context"
 	"fmt"
 	"google.golang.org/grpc"
@@ -9,16 +10,16 @@ import (
 	"google.golang.org/grpc/status"
 	"log"
 	"net"
-	"time"
 )
 
 //interface to represent DB functionalities
 type sensorDB interface {
 	//GetInfo(r *grpc_db.InfoReq) string
 	//AddMeasure(measure *grpc_db.Measure)
-	AddMeasure(string,int)
-	GetInfo(string,int) string
+	AddMeasure(string, int)
+	GetInfo(string, int) string
 	DayCleanup()
+	//InitDB()
 }
 
 var (
@@ -26,6 +27,7 @@ var (
 	sensorCount      = make(chan int64, 1)
 	gs               *grpc.Server
 	lis              net.Listener
+	db               sensorDB
 )
 
 const (
@@ -85,7 +87,8 @@ func (s *server) GetInfo(ctx context.Context, in *grpc_db.InfoReq) (*grpc_db.Inf
 	f := "GetInfo"
 	debug(f, fmt.Sprintf("args:%v", in))
 
-	res :=
+	res := db.GetInfo(in.GetSensorName(), int(in.GetDayBefore()))
+
 	return &grpc_db.InfoRes{Responce: res}, nil
 }
 
@@ -104,8 +107,9 @@ func (s *server) ConnectSensor(ctx context.Context, in *grpc_db.ConnSensorReq) (
 func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_db.MeasureRes, error) {
 	f := "SensorMeasure"
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
-	dayCleanup(db)
-	go addMeasure(db, in) //run in parallel
+	db.DayCleanup()
+	//go addMeasure(db, in) //run in parallel
+	go db.AddMeasure(in.GetSerial(), int(in.GetM())) //run in parallel
 	return &grpc_db.MeasureRes{}, nil
 }
 
@@ -117,17 +121,13 @@ func (s *server) createServer() error {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	// the DB is support only 1 week, so need to do know if day have been changed
-	GlobalDay = time.Now().Weekday()
-
 	gs = grpc.NewServer()
 	grpc_db.RegisterSensorStreamServer(gs, &server{})
 	grpc_db.RegisterClientInfoServer(gs, &server{})
 	sensorCount <- 1
 
 	//DB
-	db = in_memory_db.SensorMap()
-
+	db = In_memo_db.SensorMap()
 	log.Printf("server listening at %v", lis.Addr())
 	return gs.Serve(lis)
 }

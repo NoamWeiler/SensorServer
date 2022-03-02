@@ -3,7 +3,7 @@ syntax = "proto3";
 
 option go_package = "/Users/noamweiler/GolandProjects/SensorServer";
 
-package grpc_db;
+package SensorServer;
 
 
 /*

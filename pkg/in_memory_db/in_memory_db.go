@@ -1,8 +1,8 @@
 package In_memo_db
 
 import (
+	pb "SensorServer/pkg/grpc_db"
 	"fmt"
-	pb "grpc_db/pkg/grpc_db"
 	"log"
 	"math"
 	"strings"
