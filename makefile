@@ -1,5 +1,5 @@
-dbset:
-	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative internal/mutual_db/mutual_db.proto
+grpc_db_set:
+	protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative pkg/grpc_db/grpc_db.proto
 
 ftw:
 	go get google.golang.org/protobuf

@@ -1,7 +1,7 @@
 package main
 
 import (
-	pb "SensorServer/internal/mutual_db"
+	grpc_db "github.com/noamweiler/SnsorServer/pkg/grpc_db"
 	"context"
 	"fmt"
 	"google.golang.org/grpc"
@@ -12,13 +12,20 @@ import (
 	"time"
 )
 
+//interface to represent DB functionalities
+type sensorDB interface {
+	//GetInfo(r *grpc_db.InfoReq) string
+	//AddMeasure(measure *grpc_db.Measure)
+	AddMeasure(string,int)
+	GetInfo(string,int) string
+	DayCleanup()
+}
+
 var (
 	adminIsConnected = false
 	sensorCount      = make(chan int64, 1)
 	gs               *grpc.Server
 	lis              net.Listener
-	db               sensorMap
-	GlobalDay        time.Weekday
 )
 
 const (
@@ -35,65 +42,71 @@ func returnError(s string) error {
 	return nil
 }
 
+func debug(f string, s string) {
+	if *verbose {
+		log.Printf("[%s]: %v", f, s)
+	}
+}
+
 // ClientInfo implementation
 
-func (s *server) ConnectClient(ctx context.Context, in *pb.ConnReq) (*pb.ConnRes, error) {
+func (s *server) ConnectClient(ctx context.Context, in *grpc_db.ConnReq) (*grpc_db.ConnRes, error) {
 	f := "ConnectClient"
 	debug(f, fmt.Sprintf("%v", in))
 
 	if adminIsConnected { //can't connect twice
 		debug(f, "adminIsConnected is true")
-		return &pb.ConnRes{Res: ""}, returnError("yochbad is already connected")
+		return &grpc_db.ConnRes{Res: ""}, returnError("yochbad is already connected")
 	}
 	if in.UserName != adminName || in.Password != adminPass {
 		debug(f, fmt.Sprintf("Wrong credentials:\tin.UserName:%v, in.Password:%v", in.UserName, in.Password))
-		return &pb.ConnRes{Res: ""}, returnError("Wrong credentials")
+		return &grpc_db.ConnRes{Res: ""}, returnError("Wrong credentials")
 	}
 	debug(f, "Connect Success!")
 	adminIsConnected = true
-	return &pb.ConnRes{Res: "Connected successfully"}, nil
+	return &grpc_db.ConnRes{Res: "Connected successfully"}, nil
 }
 
-func (s *server) DisconnectClient(ctx context.Context, in *pb.DisConnReq) (*pb.ConnRes, error) {
+func (s *server) DisconnectClient(ctx context.Context, in *grpc_db.DisConnReq) (*grpc_db.ConnRes, error) {
 	f := "DisconnectClient"
 	debug(f, fmt.Sprintf("%v", "enter"))
 
 	if !adminIsConnected { //can't disconnect is not connected first
 		debug(f, "adminIsConnected is false, DisconnectClient error")
-		return &pb.ConnRes{Res: ""}, returnError("yochbad is not connected")
+		return &grpc_db.ConnRes{Res: ""}, returnError("yochbad is not connected")
 	}
 
 	debug(f, "Disconnected successfully")
 	adminIsConnected = false
-	return &pb.ConnRes{Res: "Disconnected successfully"}, nil
+	return &grpc_db.ConnRes{Res: "Disconnected successfully"}, nil
 }
 
-func (s *server) GetInfo(ctx context.Context, in *pb.InfoReq) (*pb.InfoRes, error) {
+func (s *server) GetInfo(ctx context.Context, in *grpc_db.InfoReq) (*grpc_db.InfoRes, error) {
 	f := "GetInfo"
 	debug(f, fmt.Sprintf("args:%v", in))
-	dayCleanup(db)
-	res := getInfo(db, in)
-	return &pb.InfoRes{Responce: res}, nil
+
+	res :=
+	return &grpc_db.InfoRes{Responce: res}, nil
 }
 
 // SensorStream implementation
 
-func (s *server) ConnectSensor(ctx context.Context, in *pb.ConnSensorReq) (*pb.ConnSensorRes, error) {
+func (s *server) ConnectSensor(ctx context.Context, in *grpc_db.ConnSensorReq) (*grpc_db.ConnSensorRes, error) {
 	f := "ConnectSensor"
 	var num int64
 	debug(f, fmt.Sprintf("args:%v", in))
 	//get the next serial number and increase by 1 the value to the next
 	num = <-sensorCount
 	sensorCount <- num + 1
-	return &pb.ConnSensorRes{Serial: fmt.Sprintf("sensor_%d", num)}, nil
+	return &grpc_db.ConnSensorRes{Serial: fmt.Sprintf("sensor_%d", num)}, nil
 }
 
-func (s *server) SensorMeasure(ctx context.Context, in *pb.Measure) (*pb.MeasureRes, error) {
+func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_db.MeasureRes, error) {
 	f := "SensorMeasure"
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
 	dayCleanup(db)
 	go addMeasure(db, in) //run in parallel
-	return &pb.MeasureRes{}, nil
+	return &grpc_db.MeasureRes{}, nil
 }
 
 //implementation of protocolServer interface
@@ -108,12 +121,12 @@ func (s *server) createServer() error {
 	GlobalDay = time.Now().Weekday()
 
 	gs = grpc.NewServer()
-	pb.RegisterSensorStreamServer(gs, &server{})
-	pb.RegisterClientInfoServer(gs, &server{})
+	grpc_db.RegisterSensorStreamServer(gs, &server{})
+	grpc_db.RegisterClientInfoServer(gs, &server{})
 	sensorCount <- 1
 
 	//DB
-	db = SensorMap()
+	db = in_memory_db.SensorMap()
 
 	log.Printf("server listening at %v", lis.Addr())
 	return gs.Serve(lis)
@@ -125,17 +138,4 @@ func (s *server) cleanup() {
 	if err := lis.Close(); err != nil {
 	}
 	close(sensorCount)
-}
-
-//implementation of sensorDB interface
-func addMeasure(db sensorDB, in *pb.Measure) {
-	db.addMeasure(in)
-}
-
-func getInfo(db sensorDB, r *pb.InfoReq) string {
-	return db.getInfo(r)
-}
-
-func dayCleanup(db sensorDB) {
-	db.dayCleanup()
 }

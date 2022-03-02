@@ -1,11 +1,11 @@
 package main
 
 import (
-	pb "SensorServer/internal/mutual_db"
 	"flag"
 	"fmt"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
+	grpc_db "grpc_db/pkg/grpc_db"
 	"log"
 	"os"
 	"os/signal"
@@ -15,15 +15,8 @@ import (
 
 //struct to hold the GRPC's handlers
 type server struct {
-	pb.UnimplementedClientInfoServer   //handle client request
-	pb.UnimplementedSensorStreamServer //hande sensors measures
-}
-
-//interface to represent DB functionalities
-type sensorDB interface {
-	addMeasure(measure *pb.Measure)
-	getInfo(r *pb.InfoReq) string
-	dayCleanup()
+	grpc_db.UnimplementedClientInfoServer   //handle client request
+	grpc_db.UnimplementedSensorStreamServer //hande sensors measures
 }
 
 // interface to represent a server
@@ -36,12 +29,6 @@ var (
 	verbose  = flag.Bool("v", true, "Verbose mode")
 	grpcPort = flag.Int("port", 50051, "The server port")
 )
-
-func debug(f string, s string) {
-	if *verbose {
-		log.Printf("[%s]: %v", f, s)
-	}
-}
 
 func cleanupProtocolServer(ps protocolServer) {
 	ps.cleanup()
@@ -84,7 +71,6 @@ func main() {
 		log.Fatalf("server returning an error.\nerror:%v", err)
 	}
 
-	fmt.Println("exit..")
 	fmt.Println("exit..")
 }
 

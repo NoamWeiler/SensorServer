@@ -1,9 +1,9 @@
 package main
 
 import (
-	pb "SensorServer/internal/mutual_db"
 	"errors"
 	"fmt"
+	pb "grpc_db/pkg/grpc_db"
 )
 
 const userExit = "user Exit"

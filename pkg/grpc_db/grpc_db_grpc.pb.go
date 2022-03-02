@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.2.0
 // - protoc             v3.19.4
-// source: internal/mutual_db/mutual_db.proto
+// source: pkg/grpc_db/grpc_db.proto
 
 package SensorServer
 
@@ -37,7 +37,7 @@ func NewClientInfoClient(cc grpc.ClientConnInterface) ClientInfoClient {
 
 func (c *clientInfoClient) ConnectClient(ctx context.Context, in *ConnReq, opts ...grpc.CallOption) (*ConnRes, error) {
 	out := new(ConnRes)
-	err := c.cc.Invoke(ctx, "/SensorServer.ClientInfo/ConnectClient", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/grpc_db.ClientInfo/ConnectClient", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,7 +46,7 @@ func (c *clientInfoClient) ConnectClient(ctx context.Context, in *ConnReq, opts 
 
 func (c *clientInfoClient) GetInfo(ctx context.Context, in *InfoReq, opts ...grpc.CallOption) (*InfoRes, error) {
 	out := new(InfoRes)
-	err := c.cc.Invoke(ctx, "/SensorServer.ClientInfo/GetInfo", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/grpc_db.ClientInfo/GetInfo", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +55,7 @@ func (c *clientInfoClient) GetInfo(ctx context.Context, in *InfoReq, opts ...grp
 
 func (c *clientInfoClient) DisconnectClient(ctx context.Context, in *DisConnReq, opts ...grpc.CallOption) (*ConnRes, error) {
 	out := new(ConnRes)
-	err := c.cc.Invoke(ctx, "/SensorServer.ClientInfo/DisconnectClient", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/grpc_db.ClientInfo/DisconnectClient", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func _ClientInfo_ConnectClient_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/SensorServer.ClientInfo/ConnectClient",
+		FullMethod: "/grpc_db.ClientInfo/ConnectClient",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientInfoServer).ConnectClient(ctx, req.(*ConnReq))
@@ -126,7 +126,7 @@ func _ClientInfo_GetInfo_Handler(srv interface{}, ctx context.Context, dec func(
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/SensorServer.ClientInfo/GetInfo",
+		FullMethod: "/grpc_db.ClientInfo/GetInfo",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientInfoServer).GetInfo(ctx, req.(*InfoReq))
@@ -144,7 +144,7 @@ func _ClientInfo_DisconnectClient_Handler(srv interface{}, ctx context.Context, 
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/SensorServer.ClientInfo/DisconnectClient",
+		FullMethod: "/grpc_db.ClientInfo/DisconnectClient",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ClientInfoServer).DisconnectClient(ctx, req.(*DisConnReq))
@@ -156,7 +156,7 @@ func _ClientInfo_DisconnectClient_Handler(srv interface{}, ctx context.Context, 
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ClientInfo_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "SensorServer.ClientInfo",
+	ServiceName: "grpc_db.ClientInfo",
 	HandlerType: (*ClientInfoServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -173,7 +173,7 @@ var ClientInfo_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/mutual_db/mutual_db.proto",
+	Metadata: "pkg/grpc_db/grpc_db.proto",
 }
 
 // SensorStreamClient is the client API for SensorStream service.
@@ -194,7 +194,7 @@ func NewSensorStreamClient(cc grpc.ClientConnInterface) SensorStreamClient {
 
 func (c *sensorStreamClient) ConnectSensor(ctx context.Context, in *ConnSensorReq, opts ...grpc.CallOption) (*ConnSensorRes, error) {
 	out := new(ConnSensorRes)
-	err := c.cc.Invoke(ctx, "/SensorServer.SensorStream/ConnectSensor", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/grpc_db.SensorStream/ConnectSensor", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +203,7 @@ func (c *sensorStreamClient) ConnectSensor(ctx context.Context, in *ConnSensorRe
 
 func (c *sensorStreamClient) SensorMeasure(ctx context.Context, in *Measure, opts ...grpc.CallOption) (*MeasureRes, error) {
 	out := new(MeasureRes)
-	err := c.cc.Invoke(ctx, "/SensorServer.SensorStream/SensorMeasure", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/grpc_db.SensorStream/SensorMeasure", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +252,7 @@ func _SensorStream_ConnectSensor_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/SensorServer.SensorStream/ConnectSensor",
+		FullMethod: "/grpc_db.SensorStream/ConnectSensor",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SensorStreamServer).ConnectSensor(ctx, req.(*ConnSensorReq))
@@ -270,7 +270,7 @@ func _SensorStream_SensorMeasure_Handler(srv interface{}, ctx context.Context, d
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/SensorServer.SensorStream/SensorMeasure",
+		FullMethod: "/grpc_db.SensorStream/SensorMeasure",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(SensorStreamServer).SensorMeasure(ctx, req.(*Measure))
@@ -282,7 +282,7 @@ func _SensorStream_SensorMeasure_Handler(srv interface{}, ctx context.Context, d
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var SensorStream_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "SensorServer.SensorStream",
+	ServiceName: "grpc_db.SensorStream",
 	HandlerType: (*SensorStreamServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -295,5 +295,5 @@ var SensorStream_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "internal/mutual_db/mutual_db.proto",
+	Metadata: "pkg/grpc_db/grpc_db.proto",
 }

@@ -1,8 +1,8 @@
-package main
+package In_memo_db
 
 import (
-	pb "SensorServer/internal/mutual_db"
 	"fmt"
+	pb "grpc_db/pkg/grpc_db"
 	"log"
 	"math"
 	"strings"
@@ -10,7 +10,11 @@ import (
 	"time"
 )
 
-type sensorMap map[string]*sensorWeekDB
+var (
+	GlobalDay time.Weekday
+)
+
+type sensorMap map[string]*sensorWeekDB //implements SensorDB interface
 
 type sensorDayDB struct {
 	max   int
@@ -75,7 +79,7 @@ func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
 	sw.week[d].resetDay()
 }
 
-func (sm sensorMap) addMeasure(m *pb.Measure) {
+func (sm sensorMap) AddMeasure(m *pb.Measure) {
 	serial := m.GetSerial()
 	_, ok := sm[serial]
 	if !ok {
@@ -138,7 +142,7 @@ func (sm sensorMap) getInfoBySensor(s string, d int) string {
 	return fmt.Sprintf("%s%s", s, output.String())
 }
 
-func (sm sensorMap) getInfo(res *pb.InfoReq) string {
+func (sm sensorMap) GetInfo(res *pb.InfoReq) string {
 	d := int(res.GetDayBefore())
 	s := res.GetSensorName()
 	if s == "all" {
@@ -156,8 +160,8 @@ func (sm sensorMap) addSensorToMap(s string) {
 	sm[s] = &sw
 }
 
-func SensorMap() sensorMap {
-	return sensorMap{}
+func SensorMap() *sensorMap {
+	return &sensorMap{}
 }
 
 /*
@@ -168,7 +172,7 @@ func SensorMap() sensorMap {
 	If not - continue
 	If so - need to clean the current day (run on parallel on all sensorWeekDB and tell then to reset the day)
 */
-func (sm sensorMap) dayCleanup() {
+func (sm sensorMap) DayCleanup() {
 	fname := "dayCleanup"
 	var wg sync.WaitGroup
 	now := time.Now().Weekday()
@@ -178,7 +182,7 @@ func (sm sensorMap) dayCleanup() {
 		return
 	}
 
-	debug(fname, "Starting day cleanup in DB")
+	log.Println(fname, "Starting day cleanup in DB")
 	wg.Add(len(sm))
 	for _, v := range sm {
 		go func(s *sensorWeekDB) {
@@ -188,7 +192,6 @@ func (sm sensorMap) dayCleanup() {
 	}
 
 	wg.Wait()
-	debug(fname, fmt.Sprintf("finished update,GlobalDay=%v\n", now))
-	GlobalDay = now
-
+	log.Println(fname, now)
+	GlobalDay = now //update global
 }

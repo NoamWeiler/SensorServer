@@ -1,8 +1,8 @@
-package main
+package In_memo_db
 
 import (
-	pb "SensorServer/internal/mutual_db"
 	"fmt"
+	pb "grpc_db/pkg/grpc_db"
 	"strings"
 	"testing"
 	"time"
@@ -59,8 +59,8 @@ func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 func TestAddMeasure(t *testing.T) {
 	testName, sname := "TestAddMeasure", "sensor_1"
 	mapDB := SensorMap()
-	mapDB.addMeasure(&pb.Measure{Serial: sname, M: 10})
-	mapDB.addMeasure(&pb.Measure{Serial: sname, M: 30})
+	mapDB.AddMeasure(&pb.Measure{Serial: sname, M: 10})
+	mapDB.AddMeasure(&pb.Measure{Serial: sname, M: 30})
 
 	var tests = []string{d0, d1, d2, d3, d4, d5, d6}
 	today := int(time.Now().Weekday())
@@ -80,14 +80,14 @@ func TestAddMeasure(t *testing.T) {
 
 func TestAddSensorToMap(t *testing.T) {
 	mapDB := SensorMap()
-	if len(mapDB) != 0 {
-		t.Errorf("got len=%v, want len=%v", len(mapDB), 0)
+	if len(*mapDB) != 0 {
+		t.Errorf("got len=%v, want len=%v", len(*mapDB), 0)
 	}
 	for i := 1; i < 10; i++ {
 		s := fmt.Sprintf("sensor_%d", i)
 		mapDB.addSensorToMap(s)
-		if len(mapDB) != i {
-			t.Errorf("got len=%v, want len=%v", len(mapDB), i)
+		if len(*mapDB) != i {
+			t.Errorf("got len=%v, want len=%v", len(*mapDB), i)
 		}
 	}
 

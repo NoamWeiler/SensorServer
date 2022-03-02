@@ -1,7 +1,6 @@
 package main
 
 import (
-	pb "SensorServer/internal/mutual_db"
 	"context"
 	"flag"
 	"fmt"
@@ -33,7 +32,7 @@ func myPanic(e error) {
 	}
 }
 
-func newConnReq() *pb.ConnReq {
+func newConnReq() *grpc_db.ConnReq {
 	fields := make([]string, 2)
 	for i := 0; i < 2; i++ {
 		switch i {
@@ -45,10 +44,10 @@ func newConnReq() *pb.ConnReq {
 		_, err := fmt.Scanf("%s", &fields[i])
 		myPanic(err)
 	}
-	return &pb.ConnReq{UserName: fields[0], Password: fields[1]}
+	return &grpc_db.ConnReq{UserName: fields[0], Password: fields[1]}
 }
 
-func verifyLogin(r *pb.ConnRes, err error) bool {
+func verifyLogin(r *grpc_db.ConnRes, err error) bool {
 	res := ""
 	if err != nil {
 		if e := unpackError(err); e == loginCredentialsError {
@@ -103,7 +102,7 @@ func main() {
 		log.Fatalf("did not connect: %v", err)
 	}
 
-	c := pb.NewClientInfoClient(conn)
+	c := grpc_db.NewClientInfoClient(conn)
 	// Contact the server and print out its response.
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 
@@ -136,7 +135,7 @@ forLoop:
 					printResult(res.GetResponce())
 				}
 			case 2: //disconnect
-				r, err := c.DisconnectClient(ctx, &pb.DisConnReq{})
+				r, err := c.DisconnectClient(ctx, &grpc_db.DisConnReq{})
 				if err != nil {
 					fmt.Println("Error:", unpackError(err))
 				} else {
@@ -144,7 +143,7 @@ forLoop:
 					isConnected = false
 				}
 			case 3: //exit
-				_, _ = c.DisconnectClient(ctx, &pb.DisConnReq{}) //disconnect by default on exit - my design
+				_, _ = c.DisconnectClient(ctx, &grpc_db.DisConnReq{}) //disconnect by default on exit - my design
 				break forLoop
 			default:
 			}
