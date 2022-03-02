@@ -29,7 +29,7 @@ func (s *sensorDayDB) getDayAvg() float32 {
 	if s.count == 0 {
 		return 0.0
 	}
-	return float32(s.sum / s.count)
+	return float32(s.sum) / float32(s.count)
 }
 
 func (s *sensorDayDB) getDayRes() (int, int, float32) {

@@ -133,7 +133,6 @@ forLoop:
 				if err != nil {
 					fmt.Println(err)
 				} else { //got response from server
-					fmt.Println("RAW_RES:", res)
 					printResult(res.GetResponce())
 				}
 			case 2: //disconnect
