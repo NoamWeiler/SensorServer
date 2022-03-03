@@ -14,12 +14,9 @@ import (
 
 //interface to represent DB functionalities
 type sensorDB interface {
-	//GetInfo(r *grpc_db.InfoReq) string
-	//AddMeasure(measure *grpc_db.Measure)
 	AddMeasure(string, int)
 	GetInfo(string, int) string
 	DayCleanup()
-	//InitDB()
 }
 
 var (
@@ -86,7 +83,7 @@ func (s *server) DisconnectClient(ctx context.Context, in *grpc_db.DisConnReq) (
 func (s *server) GetInfo(ctx context.Context, in *grpc_db.InfoReq) (*grpc_db.InfoRes, error) {
 	f := "GetInfo"
 	debug(f, fmt.Sprintf("args:%v", in))
-
+	//unpack request for sensorDB interface
 	res := db.GetInfo(in.GetSensorName(), int(in.GetDayBefore()))
 
 	return &grpc_db.InfoRes{Responce: res}, nil
@@ -108,13 +105,13 @@ func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_
 	f := "SensorMeasure"
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
 	db.DayCleanup()
-	//go addMeasure(db, in) //run in parallel
+	//unpack request for sensorDB interface
 	go db.AddMeasure(in.GetSerial(), int(in.GetM())) //run in parallel
 	return &grpc_db.MeasureRes{}, nil
 }
 
 //implementation of protocolServer interface
-func (s *server) createServer() error {
+func (s *server) runServer() {
 	var err error
 	lis, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", *grpcPort))
 	if err != nil {
@@ -130,13 +127,13 @@ func (s *server) createServer() error {
 	db = In_memo_db.SensorMap()
 
 	log.Printf("server listening at %v", lis.Addr())
-	return gs.Serve(lis)
+	if err := gs.Serve(lis); err != nil {
+		log.Fatalf("%v\n", err)
+	}
 }
 
 func (s *server) cleanup() {
 	adminIsConnected = false
 	gs.GracefulStop()
-	if err := lis.Close(); err != nil {
-	}
 	close(sensorCount)
 }

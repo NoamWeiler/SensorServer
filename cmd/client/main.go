@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"math"
 	"os"
@@ -16,20 +17,24 @@ import (
 )
 
 const (
-	defaultName           = "yochbad"
 	loginConnectedMessage = "Connected successfully"
 	loginCredentialsError = "Wrong credentials"
 )
 
 var (
 	addr    = flag.String("addr", "localhost:50051", "the address to connect to")
-	name    = flag.String("name", defaultName, "Name to greet")
-	verbose = flag.Bool("v", true, "Verbose mode")
+	verbose = flag.Bool("v", false, "Verbose mode")
 )
 
 func myPanic(e error) {
 	if e != nil {
 		panic(fmt.Sprintf("%v", e))
+	}
+}
+
+func debug(fname, s string) {
+	if *verbose {
+		log.Printf("[%s]\t%s\n", fname, s)
 	}
 }
 
@@ -98,26 +103,24 @@ func main() {
 	flag.Parse()
 	isConnected := false
 	// Set up a connection to the server.
-	conn, err := grpc.Dial(*addr, grpc.WithInsecure())
+	conn, err := grpc.Dial(*addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
 
 	c := grpc_db.NewClientInfoClient(conn)
-	// Contact the server and print out its response.
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 
 	defer func() { //cleanup
 		err := conn.Close()
 		if err != nil {
 			log.Println(err)
 		}
-		defer cancel()
+		//defer cancel()
 	}()
 
 forLoop:
 	for {
-		ctx, cancel = context.WithTimeout(context.Background(), 60*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		if !isConnected {
 			cr := newConnReq()
 			r, err := c.ConnectClient(ctx, cr)
@@ -133,6 +136,7 @@ forLoop:
 				if err != nil {
 					fmt.Println(err)
 				} else { //got response from server
+					debug("GetInfoRes", res.GetResponce())
 					printResult(res.GetResponce())
 				}
 			case 2: //disconnect
@@ -144,14 +148,15 @@ forLoop:
 					isConnected = false
 				}
 			case 3: //exit
+				cancel()
 				_, _ = c.DisconnectClient(ctx, &grpc_db.DisConnReq{}) //disconnect by default on exit - my design
 				break forLoop
 			default:
 			}
 
 		}
+		cancel() //close the current iteration context
 	}
-
 	fmt.Println("exit..")
 }
 

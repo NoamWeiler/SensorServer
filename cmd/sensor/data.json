@@ -6,6 +6,10 @@
 },{
   "m": 20,"serial": "sensor_2"
 },{
+  "m": 23,"serial": "sensor_2"
+},{
+  "m": 24,"serial": "sensor_2"
+},{
   "m": 20,"serial": "sensor_4"
 },{
   "m": 20,"serial": "sensor_5"
@@ -15,5 +19,7 @@
   "m": 24,"serial": "sensor_3"
 },{
   "m": 22,"serial": "sensor_3"
+},{
+  "m": 21,"serial": "sensor_5"
 }
   ]

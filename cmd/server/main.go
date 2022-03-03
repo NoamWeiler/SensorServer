@@ -2,15 +2,14 @@ package main
 
 import (
 	grpc_db "SensorServer/pkg/grpc_db"
+	"context"
+	"errors"
 	"flag"
 	"fmt"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 //struct to hold the GRPC's handlers
@@ -21,56 +20,65 @@ type server struct {
 
 // interface to represent a server
 type protocolServer interface {
-	createServer() error
+	runServer()
 	cleanup()
 }
 
 var (
-	verbose  = flag.Bool("v", false, "Verbose mode")
-	grpcPort = flag.Int("port", 50051, "The server port")
+	verbose    = flag.Bool("v", false, "Verbose mode")
+	grpcPort   = flag.Int("port", 50051, "The server port")
+	grpcServer protocolServer
 )
-
-func cleanupProtocolServer(ps protocolServer) {
-	ps.cleanup()
-}
 
 func main() {
 	flag.Parse()
+	shutDownChan := make(chan bool, 1)
+	ctx, cancel := context.WithCancel(context.Background())
+	g, gctx := errgroup.WithContext(ctx)
 
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	//GRPC server
+	g.Go(func() error {
+		grpcServer = &server{}
+		go grpcServer.runServer()
+		select {
+		case <-shutDownChan:
+			grpcServer.cleanup()
+			close(shutDownChan)
+			break
+		}
+		return nil
+	})
 
-	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
-	defer close(interrupt)
+	// signal handler
+	g.Go(func() error {
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	g, ctx := errgroup.WithContext(ctx)
+		select {
+		case sig := <-sigChan:
+			close(sigChan)
+			fmt.Printf("Received signal: %s\n", sig)
+			cancel()             //calling cancel of the main context
+			shutDownChan <- true //cleanup signal to the grpc server
+			break
+		case <-gctx.Done():
+			fmt.Printf("closing signal goroutine\n")
+			return gctx.Err()
+		}
+		return nil
+	})
 
-	grpcs := new(server)
-
-	g.Go(grpcs.createServer)
-	//defer grpcs.cleanup() -> after the select (using the interface)
-
-	select {
-	case in := <-interrupt:
-		fmt.Println(in)
-		break
-	case <-ctx.Done():
-		break
-	}
-
-	//put the server up for 10 minutes, then close it gracefully
-	_, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Minute)
-	defer shutdownCancel()
-
-	cleanupProtocolServer(grpcs)
-
+	// wait for all errgroup goroutines
 	err := g.Wait()
 	if err != nil {
-		log.Fatalf("server returning an error.\nerror:%v", err)
+		if errors.Is(err, context.Canceled) {
+			fmt.Print("context was canceled")
+		} else {
+			fmt.Printf("received error: %v", err)
+		}
+	} else {
+		fmt.Println("finished shutdown")
 	}
-
 	fmt.Println("exit..")
 }
 

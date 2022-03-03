@@ -89,9 +89,9 @@ func (sm sensorMap) AddMeasure(serial string, measure int) {
 
 func (sm sensorMap) getInfoAllSensors(day int) string {
 	var output strings.Builder
-	for k, _ := range sm {
+	for k := range sm {
 		str := sm.getInfoBySensor(k, day)
-		if _, err := fmt.Fprintf(&output, str); err != nil {
+		if _, err := fmt.Fprintf(&output, "%v", str); err != nil {
 			log.Println(err)
 			return fmt.Sprintf("Error:%v", err)
 		}
@@ -149,7 +149,7 @@ func (sm *sensorMap) GetInfo(serial string, daysBefore int) string {
 func (sm sensorMap) addSensorToMap(s string) {
 	sw := sensorWeekDB{week: make([]sensorDayDB, 7)}
 	sww := sw.week
-	for i, _ := range sww {
+	for i := range sww {
 		sww[i].resetDay()
 	}
 	sm[s] = &sw
