@@ -40,12 +40,9 @@ func main() {
 	g.Go(func() error {
 		grpcServer = &server{}
 		go grpcServer.runServer()
-		select {
-		case <-shutDownChan:
-			grpcServer.cleanup()
-			close(shutDownChan)
-			break
-		}
+		<-shutDownChan
+		grpcServer.cleanup()
+		close(shutDownChan)
 		return nil
 	})
 
@@ -72,7 +69,7 @@ func main() {
 	err := g.Wait()
 	if err != nil {
 		if errors.Is(err, context.Canceled) {
-			fmt.Print("context was canceled")
+			fmt.Print("context was canceled\n")
 		} else {
 			fmt.Printf("received error: %v", err)
 		}
