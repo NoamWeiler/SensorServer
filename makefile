@@ -8,11 +8,11 @@ ftw:
 	go get github.com/aws/aws-sdk-go/aws
 
 run_client:
-	go run pkg/client/main.go pkg/client/client_menu.go
+	go run cmd/client/main.go cmd/client/client_menu.go
 
 
 run_server: $(verbose)
-	go run pkg/server/main.go pkg/server/grpc_server.go pkg/server/in_memory_db.go
+	go run cmd/server/*.go -v
 
 run_stream:
-	go run pkg/sensor/main.go
+	go run cmd/sensor/main.go

@@ -1,7 +1,6 @@
 package In_memo_db
 
 import (
-	grpc_db "SensorServer/pkg/grpc_db"
 	"fmt"
 	"log"
 	"math"
@@ -79,17 +78,15 @@ func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
 	sw.week[d].resetDay()
 }
 
-func (sm sensorMap) AddMeasure(m *grpc_db.Measure) {
-	serial := m.GetSerial()
+// AddMeasure - implementation of sensorDB interface
+func (sm sensorMap) AddMeasure(serial string, measure int) {
 	_, ok := sm[serial]
 	if !ok {
 		sm.addSensorToMap(serial)
 	}
-	elem := sm[serial]
-	elem.addMeasure(int(m.GetM()))
+	sm[serial].addMeasure(measure)
 }
 
-//implementation of sensorDB interface
 func (sm sensorMap) getInfoAllSensors(day int) string {
 	var output strings.Builder
 	for k, _ := range sm {
@@ -142,13 +139,11 @@ func (sm sensorMap) getInfoBySensor(s string, d int) string {
 	return fmt.Sprintf("%s%s", s, output.String())
 }
 
-func (sm sensorMap) GetInfo(res *grpc_db.InfoReq) string {
-	d := int(res.GetDayBefore())
-	s := res.GetSensorName()
-	if s == "all" {
-		return sm.getInfoAllSensors(d)
+func (sm *sensorMap) GetInfo(serial string, daysBefore int) string {
+	if serial == "all" {
+		return sm.getInfoAllSensors(daysBefore)
 	}
-	return sm.getInfoBySensor(s, d)
+	return sm.getInfoBySensor(serial, daysBefore)
 }
 
 func (sm sensorMap) addSensorToMap(s string) {
@@ -172,7 +167,7 @@ func SensorMap() *sensorMap {
 	If not - continue
 	If so - need to clean the current day (run on parallel on all sensorWeekDB and tell then to reset the day)
 */
-func (sm sensorMap) DayCleanup() {
+func (sm *sensorMap) DayCleanup() {
 	fname := "dayCleanup"
 	var wg sync.WaitGroup
 	now := time.Now().Weekday()
@@ -183,8 +178,8 @@ func (sm sensorMap) DayCleanup() {
 	}
 
 	log.Println(fname, "Starting day cleanup in DB")
-	wg.Add(len(sm))
-	for _, v := range sm {
+	wg.Add(len(*sm))
+	for _, v := range *sm {
 		go func(s *sensorWeekDB) {
 			defer wg.Done()
 			s.cleanDay(now)

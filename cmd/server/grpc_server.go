@@ -126,8 +126,9 @@ func (s *server) createServer() error {
 	grpc_db.RegisterClientInfoServer(gs, &server{})
 	sensorCount <- 1
 
-	//DB
+	//DB - used sensorDB interface
 	db = In_memo_db.SensorMap()
+
 	log.Printf("server listening at %v", lis.Addr())
 	return gs.Serve(lis)
 }

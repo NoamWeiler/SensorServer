@@ -26,7 +26,7 @@ type protocolServer interface {
 }
 
 var (
-	verbose  = flag.Bool("v", true, "Verbose mode")
+	verbose  = flag.Bool("v", false, "Verbose mode")
 	grpcPort = flag.Int("port", 50051, "The server port")
 )
 
