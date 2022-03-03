@@ -8,10 +8,10 @@ import (
 
 func main() {
 	report, err := runner.Run(
-		"grpc_db.SensorStream.SensorMeasure",
+		"SensorServer.SensorStream.SensorMeasure",
 		"localhost:50051",
-		runner.WithProtoFile("./internal/grpc_db/grpc_db.proto", []string{}),
-		runner.WithDataFromFile("./pkg/sensor/data.json"),
+		runner.WithProtoFile("./pkg/grpc_db/grpc_db.proto", []string{}),
+		runner.WithDataFromFile("./cmd/sensor/data.json"),
 		runner.WithInsecure(true),
 	)
 
