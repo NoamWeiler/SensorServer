@@ -181,7 +181,7 @@ var ClientInfo_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SensorStreamClient interface {
 	ConnectSensor(ctx context.Context, in *ConnSensorReq, opts ...grpc.CallOption) (*ConnSensorRes, error)
-	SensorMeasure(ctx context.Context, in *Measure, opts ...grpc.CallOption) (*MeasureRes, error)
+	Sensormeasure(ctx context.Context, in *Measure, opts ...grpc.CallOption) (*MeasureRes, error)
 }
 
 type sensorStreamClient struct {
@@ -201,9 +201,9 @@ func (c *sensorStreamClient) ConnectSensor(ctx context.Context, in *ConnSensorRe
 	return out, nil
 }
 
-func (c *sensorStreamClient) SensorMeasure(ctx context.Context, in *Measure, opts ...grpc.CallOption) (*MeasureRes, error) {
+func (c *sensorStreamClient) Sensormeasure(ctx context.Context, in *Measure, opts ...grpc.CallOption) (*MeasureRes, error) {
 	out := new(MeasureRes)
-	err := c.cc.Invoke(ctx, "/SensorServer.SensorStream/SensorMeasure", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/SensorServer.SensorStream/Sensormeasure", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func (c *sensorStreamClient) SensorMeasure(ctx context.Context, in *Measure, opt
 // for forward compatibility
 type SensorStreamServer interface {
 	ConnectSensor(context.Context, *ConnSensorReq) (*ConnSensorRes, error)
-	SensorMeasure(context.Context, *Measure) (*MeasureRes, error)
+	Sensormeasure(context.Context, *Measure) (*MeasureRes, error)
 	mustEmbedUnimplementedSensorStreamServer()
 }
 
@@ -226,8 +226,8 @@ type UnimplementedSensorStreamServer struct {
 func (UnimplementedSensorStreamServer) ConnectSensor(context.Context, *ConnSensorReq) (*ConnSensorRes, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ConnectSensor not implemented")
 }
-func (UnimplementedSensorStreamServer) SensorMeasure(context.Context, *Measure) (*MeasureRes, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SensorMeasure not implemented")
+func (UnimplementedSensorStreamServer) Sensormeasure(context.Context, *Measure) (*MeasureRes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Sensormeasure not implemented")
 }
 func (UnimplementedSensorStreamServer) mustEmbedUnimplementedSensorStreamServer() {}
 
@@ -260,20 +260,20 @@ func _SensorStream_ConnectSensor_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _SensorStream_SensorMeasure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _SensorStream_Sensormeasure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Measure)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(SensorStreamServer).SensorMeasure(ctx, in)
+		return srv.(SensorStreamServer).Sensormeasure(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/SensorServer.SensorStream/SensorMeasure",
+		FullMethod: "/SensorServer.SensorStream/Sensormeasure",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SensorStreamServer).SensorMeasure(ctx, req.(*Measure))
+		return srv.(SensorStreamServer).Sensormeasure(ctx, req.(*Measure))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -290,8 +290,8 @@ var SensorStream_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _SensorStream_ConnectSensor_Handler,
 		},
 		{
-			MethodName: "SensorMeasure",
-			Handler:    _SensorStream_SensorMeasure_Handler,
+			MethodName: "Sensormeasure",
+			Handler:    _SensorStream_Sensormeasure_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

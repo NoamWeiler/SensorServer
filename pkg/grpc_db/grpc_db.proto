@@ -49,8 +49,8 @@ message InfoRes{
 
 service SensorStream {
   rpc ConnectSensor (ConnSensorReq) returns (ConnSensorRes){}
-  rpc SensorMeasure (Measure) returns (MeasureRes){}
-  //  rpc SensorMeasure (stream Measure) returns (MeasureRes){}
+  rpc Sensormeasure (measure) returns (measureRes){}
+  //  rpc Sensormeasure (stream measure) returns (measureRes){}
 }
 
 message ConnSensorReq {}
@@ -59,9 +59,9 @@ message ConnSensorRes {
   string serial = 1;
 }
 
-message Measure{
+message measure{
   int32 m = 1;
   string serial = 2;
 }
 
-message MeasureRes{}
+message measureRes{}

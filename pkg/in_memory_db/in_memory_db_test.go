@@ -9,7 +9,7 @@ import (
 
 var emptydb = ""
 var d0 = "sensor_1,Sunday,-9223372036854775808,9223372036854775807,0,"
-var d1 = "sensor_1,Monday,-9223372036854775808,9223372036854775807,0,"
+var d1 = "sensor_1,monday,-9223372036854775808,9223372036854775807,0,"
 var d2 = "sensor_1,Tuesday,-9223372036854775808,9223372036854775807,0,"
 var d3 = "sensor_1,Wednesday,-9223372036854775808,9223372036854775807,0,"
 var d4 = "sensor_1,Thursday,-9223372036854775808,9223372036854775807,0,"
@@ -18,7 +18,7 @@ var d6 = "sensor_1,Saturday,-9223372036854775808,9223372036854775807,0,"
 
 func TestGetInfoBySensor_emptyDB(t *testing.T) {
 	testName := "TestGetInfoBySensor_emptyDB"
-	mapDb := SensorMap()
+	mapDb := Sensormap()
 	t.Run(testName, func(t *testing.T) {
 		s := mapDb.getInfoBySensor("", 8)
 		if s != emptydb {
@@ -30,10 +30,10 @@ func TestGetInfoBySensor_emptyDB(t *testing.T) {
 func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 	testName := "TestGetInfoBySensor_SensorsNoTraffic"
 	var tmgrpc_dbuff strings.Builder
-	mapDB := SensorMap()
+	mapDB := Sensormap()
 	for i := 1; i < 50; i++ {
 		s := fmt.Sprintf("sensor_%d", i)
-		mapDB.addSensorToMap(s)
+		mapDB.addSensorTomap(s)
 		for i := 0; i < 7; i += 1 {
 			if i != 0 {
 				fmt.Fprintf(&tmgrpc_dbuff, "%v", fmt.Sprintf("%s,%s,-9223372036854775808,9223372036854775807,0,", "", time.Weekday(i)))
@@ -52,12 +52,12 @@ func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 }
 
 // add measures to sernsor_1, then test all days ofsensor_1
-func TestAddMeasure(t *testing.T) {
-	testName, sname := "TestAddMeasure", "sensor_1"
+func TestAddmeasure(t *testing.T) {
+	testName, sname := "TestAddmeasure", "sensor_1"
 	var tt string
-	mapDB := SensorMap()
-	mapDB.AddMeasure(sname, 10)
-	mapDB.AddMeasure(sname, 30)
+	mapDB := Sensormap()
+	mapDB.Addmeasure(sname, 10)
+	mapDB.Addmeasure(sname, 30)
 
 	var tests = []string{d0, d1, d2, d3, d4, d5, d6}
 	now := time.Now().Weekday()
@@ -81,14 +81,14 @@ func TestAddMeasure(t *testing.T) {
 
 }
 
-func TestAddSensorToMap(t *testing.T) {
-	mapDB := SensorMap()
+func TestAddSensorTomap(t *testing.T) {
+	mapDB := Sensormap()
 	if len(*mapDB) != 0 {
 		t.Errorf("got len=%v, want len=%v", len(*mapDB), 0)
 	}
 	for i := 1; i < 10; i++ {
 		s := fmt.Sprintf("sensor_%d", i)
-		mapDB.addSensorToMap(s)
+		mapDB.addSensorTomap(s)
 		if len(*mapDB) != i {
 			t.Errorf("got len=%v, want len=%v", len(*mapDB), i)
 		}

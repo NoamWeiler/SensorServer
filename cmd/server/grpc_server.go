@@ -14,7 +14,7 @@ import (
 
 //interface to represent DB functionalities
 type sensorDB interface {
-	AddMeasure(string, int)
+	Addmeasure(string, int)
 	GetInfo(string, int) string
 	DayCleanup()
 }
@@ -101,12 +101,12 @@ func (s *server) ConnectSensor(ctx context.Context, in *grpc_db.ConnSensorReq) (
 	return &grpc_db.ConnSensorRes{Serial: fmt.Sprintf("sensor_%d", num)}, nil
 }
 
-func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_db.MeasureRes, error) {
-	f := "SensorMeasure"
+func (s *server) Sensormeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_db.MeasureRes, error) {
+	f := "Sensormeasure"
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
 	db.DayCleanup()
 	//unpack request for sensorDB interface
-	go db.AddMeasure(in.GetSerial(), int(in.GetM())) //run in parallel
+	go db.Addmeasure(in.GetSerial(), int(in.GetM())) //run in parallel
 	return &grpc_db.MeasureRes{}, nil
 }
 
@@ -124,7 +124,7 @@ func (s *server) runServer() {
 	sensorCount <- 1
 
 	//DB - used sensorDB interface
-	db = In_memo_db.SensorMap()
+	db = In_memo_db.Sensormap()
 
 	log.Printf("server listening at %v", lis.Addr())
 	if err := gs.Serve(lis); err != nil {

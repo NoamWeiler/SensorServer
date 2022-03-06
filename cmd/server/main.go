@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/pkg/profile"
 	"golang.org/x/sync/errgroup"
 	"os"
 	"os/signal"
@@ -31,6 +32,7 @@ var (
 )
 
 func main() {
+	defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
 	flag.Parse()
 	shutDownChan := make(chan bool, 1)
 	ctx, cancel := context.WithCancel(context.Background())

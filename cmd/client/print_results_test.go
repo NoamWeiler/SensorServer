@@ -10,11 +10,11 @@ import (
 
 var d1 = ""
 var d2 = "sensor_1,Tuesday,30,10,20,"
-var d3 = "sensor_1,Sunday,-,-,-,sensor_1,Monday,-,-,-,sensor_1,Tuesday,30,10,20,sensor_1,Wednesday,-,-,-,sensor_1,Thursday,-,-,-,sensor_1,Friday,-,-,-,sensor_1,Saturday,-,-,-,1"
+var d3 = "sensor_1,Sunday,-,-,-,sensor_1,monday,-,-,-,sensor_1,Tuesday,30,10,20,sensor_1,Wednesday,-,-,-,sensor_1,Thursday,-,-,-,sensor_1,Friday,-,-,-,sensor_1,Saturday,-,-,-,1"
 
-var res1 = "+---------+-----+-----+-----+-----+\n| #SERIAL | DAY | MIN | MAX | AVG |\n+---------+-----+-----+-----+-----+\n+---------+-----+-----+-----+-----+\n"
-var res2 = "+----------+---------+-----+-----+-----+\n| #SERIAL  | DAY     | MIN | MAX | AVG |\n+----------+---------+-----+-----+-----+\n| sensor_1 | Tuesday | 30  | 10  | 20  |\n+----------+---------+-----+-----+-----+\n"
-var res3 = "+----------+-----------+-----+-----+-----+\n| #SERIAL  | DAY       | MIN | MAX | AVG |\n+----------+-----------+-----+-----+-----+\n| sensor_1 | Sunday    | -   | -   | -   |\n| sensor_1 | Monday    | -   | -   | -   |\n| sensor_1 | Tuesday   | 30  | 10  | 20  |\n| sensor_1 | Wednesday | -   | -   | -   |\n| sensor_1 | Thursday  | -   | -   | -   |\n| sensor_1 | Friday    | -   | -   | -   |\n| sensor_1 | Saturday  | -   | -   | -   |\n+----------+-----------+-----+-----+-----+\n"
+var res1 = "+---------+-----+-----+-----+-----+\n| #SERIAL | DAY | mIN | mAX | AVG |\n+---------+-----+-----+-----+-----+\n+---------+-----+-----+-----+-----+\n"
+var res2 = "+----------+---------+-----+-----+-----+\n| #SERIAL  | DAY     | mIN | mAX | AVG |\n+----------+---------+-----+-----+-----+\n| sensor_1 | Tuesday | 30  | 10  | 20  |\n+----------+---------+-----+-----+-----+\n"
+var res3 = "+----------+-----------+-----+-----+-----+\n| #SERIAL  | DAY       | mIN | mAX | AVG |\n+----------+-----------+-----+-----+-----+\n| sensor_1 | Sunday    | -   | -   | -   |\n| sensor_1 | monday    | -   | -   | -   |\n| sensor_1 | Tuesday   | 30  | 10  | 20  |\n| sensor_1 | Wednesday | -   | -   | -   |\n| sensor_1 | Thursday  | -   | -   | -   |\n| sensor_1 | Friday    | -   | -   | -   |\n| sensor_1 | Saturday  | -   | -   | -   |\n+----------+-----------+-----+-----+-----+\n"
 
 func execToString(f func(s string), args string) string {
 	old := os.Stdout // keep backup of the real stdout

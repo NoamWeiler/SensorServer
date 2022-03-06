@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	loginConnectedMessage = "Connected successfully"
+	loginConnectedmessage = "Connected successfully"
 	loginCredentialsError = "Wrong credentials"
 )
 
@@ -65,7 +65,7 @@ func verifyLogin(r *grpc_db.ConnRes, err error) bool {
 		res = r.GetRes()
 		log.Printf("Res: %s", res)
 	}
-	return res == loginConnectedMessage
+	return res == loginConnectedmessage
 }
 
 func unpackError(e error) string {
@@ -85,7 +85,7 @@ func printResult(s string) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.SetStyle(table.StyleLight)
-	t.AppendHeader(table.Row{"#SERIAL", "DAY", "MIN", "MAX", "AVG"})
+	t.AppendHeader(table.Row{"#SERIAL", "DAY", "mIN", "mAX", "AVG"})
 	for i := 0; i < len(arr)-1; i += 5 {
 		if arr[i] != "" && i > 0 {
 			t.AppendSeparator()
@@ -126,9 +126,9 @@ forLoop:
 			r, err := c.ConnectClient(ctx, cr)
 			isConnected = verifyLogin(r, err)
 		} else {
-			switch showMainMenu() {
+			switch showmainmenu() {
 			case 1: //got info
-				ir, err := clientMenu()
+				ir, err := clientmenu()
 				if err != nil && fmt.Sprintf("%v", err) == userExit {
 					continue //got error if userExit from menu
 				}

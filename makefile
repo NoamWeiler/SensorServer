@@ -11,8 +11,11 @@ run_client:
 	go run cmd/client/main.go cmd/client/client_menu.go
 
 
-run_server: $(verbose)
-	go run cmd/server/*.go -v
+run_server_debug:
+	go run -race cmd/server/*.go -v
+
+run_server:
+	go run cmd/server/*.go
 
 run_stream:
 	go run cmd/sensor/main.go

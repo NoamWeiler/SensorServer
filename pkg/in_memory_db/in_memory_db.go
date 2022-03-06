@@ -13,7 +13,8 @@ var (
 	GlobalDay time.Weekday
 )
 
-type sensorMap map[string]*sensorWeekDB //implements SensorDB interface
+//type sensormap sync.Map //implements SensorDB interface
+type sensormap map[string]*sensorWeekDB //implements SensorDB interface
 
 type sensorDayDB struct {
 	max   int
@@ -39,7 +40,7 @@ func (s *sensorDayDB) getDayRes() (int, int, float32) {
 	return s.max, s.min, s.getDayAvg()
 }
 
-func (s *sensorDayDB) addMeasure(m int) {
+func (s *sensorDayDB) addmeasure(m int) {
 	s.count++
 	s.sum += m
 	s.min = func(a, b int) int {
@@ -64,11 +65,11 @@ func (s *sensorDayDB) resetDay() {
 }
 
 //week implementation
-func (sw *sensorWeekDB) addMeasure(m int) {
+func (sw *sensorWeekDB) addmeasure(m int) {
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
 	dayIndex := int(time.Now().Weekday()) //Sunday=0
-	sw.week[dayIndex].addMeasure(m)
+	sw.week[dayIndex].addmeasure(m)
 }
 
 func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
@@ -78,18 +79,18 @@ func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
 	sw.week[d].resetDay()
 }
 
-// AddMeasure - implementation of sensorDB interface
-func (sm sensorMap) AddMeasure(serial string, measure int) {
-	_, ok := sm[serial]
+// Addmeasure - implementation of sensorDB interface
+func (sm *sensormap) Addmeasure(serial string, measure int) {
+	_, ok := (*sm)[serial]
 	if !ok {
-		sm.addSensorToMap(serial)
+		sm.addSensorTomap(serial)
 	}
-	sm[serial].addMeasure(measure)
+	(*sm)[serial].addmeasure(measure)
 }
 
-func (sm sensorMap) getInfoAllSensors(day int) string {
+func (sm *sensormap) getInfoAllSensors(day int) string {
 	var output strings.Builder
-	for k := range sm {
+	for k := range *sm {
 		str := sm.getInfoBySensor(k, day)
 		if _, err := fmt.Fprintf(&output, "%v", str); err != nil {
 			log.Println(err)
@@ -105,9 +106,9 @@ func buildDayString(day *sensorDayDB, d int) string {
 	return fmt.Sprintf("%v,%v,%v,%v,", time.Weekday(d), a, b, c)
 }
 
-func (sm sensorMap) getInfoBySensor(s string, d int) string {
+func (sm *sensormap) getInfoBySensor(s string, d int) string {
 	//get element
-	elem, ok := sm[s]
+	elem, ok := (*sm)[s]
 	if !ok {
 		return ""
 	}
@@ -139,35 +140,35 @@ func (sm sensorMap) getInfoBySensor(s string, d int) string {
 	return fmt.Sprintf("%s%s", s, output.String())
 }
 
-func (sm *sensorMap) GetInfo(serial string, daysBefore int) string {
+func (sm *sensormap) GetInfo(serial string, daysBefore int) string {
 	if serial == "all" {
 		return sm.getInfoAllSensors(daysBefore)
 	}
 	return sm.getInfoBySensor(serial, daysBefore)
 }
 
-func (sm sensorMap) addSensorToMap(s string) {
+func (sm *sensormap) addSensorTomap(s string) {
 	sw := sensorWeekDB{week: make([]sensorDayDB, 7)}
 	sww := sw.week
 	for i := range sww {
 		sww[i].resetDay()
 	}
-	sm[s] = &sw
+	(*sm)[s] = &sw
 }
 
-func SensorMap() *sensorMap {
-	return &sensorMap{}
+func Sensormap() *sensormap {
+	return &sensormap{}
 }
 
 /*
-	Update that occur every addMeasure and getInfo
+	Update that occur every addmeasure and getInfo
 	The design:
-	Before client getInfo or sensor addMeasure -
+	Before client getInfo or sensor addmeasure -
 	Check if the day have been changed since last request
 	If not - continue
 	If so - need to clean the current day (run on parallel on all sensorWeekDB and tell then to reset the day)
 */
-func (sm *sensorMap) DayCleanup() {
+func (sm *sensormap) DayCleanup() {
 	fname := "dayCleanup"
 	var wg sync.WaitGroup
 	now := time.Now().Weekday()
