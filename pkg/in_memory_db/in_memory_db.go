@@ -13,7 +13,7 @@ var (
 	GlobalDay time.Weekday
 )
 
-//type sensormap sync.Map //implements SensorDB interface
+//type sensorMap sync.Map //implements SensorDB interface
 type sensormap map[string]*sensorWeekDB //implements SensorDB interface
 
 type sensorDayDB struct {
@@ -40,7 +40,7 @@ func (s *sensorDayDB) getDayRes() (int, int, float32) {
 	return s.max, s.min, s.getDayAvg()
 }
 
-func (s *sensorDayDB) addmeasure(m int) {
+func (s *sensorDayDB) AddMeasure(m int) {
 	s.count++
 	s.sum += m
 	s.min = func(a, b int) int {
@@ -65,11 +65,11 @@ func (s *sensorDayDB) resetDay() {
 }
 
 //week implementation
-func (sw *sensorWeekDB) addmeasure(m int) {
+func (sw *sensorWeekDB) AddMeasure(m int) {
 	sw.mu.Lock()
 	defer sw.mu.Unlock()
 	dayIndex := int(time.Now().Weekday()) //Sunday=0
-	sw.week[dayIndex].addmeasure(m)
+	sw.week[dayIndex].AddMeasure(m)
 }
 
 func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
@@ -79,13 +79,13 @@ func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
 	sw.week[d].resetDay()
 }
 
-// Addmeasure - implementation of sensorDB interface
-func (sm *sensormap) Addmeasure(serial string, measure int) {
+// AddMeasure - implementation of sensorDB interface
+func (sm *sensormap) AddMeasure(serial string, measure int) {
 	_, ok := (*sm)[serial]
 	if !ok {
 		sm.addSensorTomap(serial)
 	}
-	(*sm)[serial].addmeasure(measure)
+	(*sm)[serial].AddMeasure(measure)
 }
 
 func (sm *sensormap) getInfoAllSensors(day int) string {
@@ -156,14 +156,14 @@ func (sm *sensormap) addSensorTomap(s string) {
 	(*sm)[s] = &sw
 }
 
-func Sensormap() *sensormap {
+func SensorMap() *sensormap {
 	return &sensormap{}
 }
 
 /*
-	Update that occur every addmeasure and getInfo
+	Update that occur every AddMeasure and getInfo
 	The design:
-	Before client getInfo or sensor addmeasure -
+	Before client getInfo or sensor AddMeasure -
 	Check if the day have been changed since last request
 	If not - continue
 	If so - need to clean the current day (run on parallel on all sensorWeekDB and tell then to reset the day)

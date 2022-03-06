@@ -8,7 +8,7 @@ import (
 
 func main() {
 	report, err := runner.Run(
-		"SensorServer.SensorStream.Sensormeasure",
+		"SensorServer.SensorStream.SensorMeasure",
 		"localhost:50051",
 		runner.WithProtoFile("./pkg/grpc_db/grpc_db.proto", []string{}),
 		runner.WithDataFromFile("./cmd/sensor/test1.json"),

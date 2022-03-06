@@ -18,7 +18,7 @@ var d6 = "sensor_1,Saturday,-9223372036854775808,9223372036854775807,0,"
 
 func TestGetInfoBySensor_emptyDB(t *testing.T) {
 	testName := "TestGetInfoBySensor_emptyDB"
-	mapDb := Sensormap()
+	mapDb := sensorMap()
 	t.Run(testName, func(t *testing.T) {
 		s := mapDb.getInfoBySensor("", 8)
 		if s != emptydb {
@@ -30,7 +30,7 @@ func TestGetInfoBySensor_emptyDB(t *testing.T) {
 func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 	testName := "TestGetInfoBySensor_SensorsNoTraffic"
 	var tmgrpc_dbuff strings.Builder
-	mapDB := Sensormap()
+	mapDB := sensorMap()
 	for i := 1; i < 50; i++ {
 		s := fmt.Sprintf("sensor_%d", i)
 		mapDB.addSensorTomap(s)
@@ -52,12 +52,12 @@ func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 }
 
 // add measures to sernsor_1, then test all days ofsensor_1
-func TestAddmeasure(t *testing.T) {
-	testName, sname := "TestAddmeasure", "sensor_1"
+func TestAddMeasure(t *testing.T) {
+	testName, sname := "TestAddMeasure", "sensor_1"
 	var tt string
-	mapDB := Sensormap()
-	mapDB.Addmeasure(sname, 10)
-	mapDB.Addmeasure(sname, 30)
+	mapDB := sensorMap()
+	mapDB.AddMeasure(sname, 10)
+	mapDB.AddMeasure(sname, 30)
 
 	var tests = []string{d0, d1, d2, d3, d4, d5, d6}
 	now := time.Now().Weekday()
@@ -82,7 +82,7 @@ func TestAddmeasure(t *testing.T) {
 }
 
 func TestAddSensorTomap(t *testing.T) {
-	mapDB := Sensormap()
+	mapDB := sensorMap()
 	if len(*mapDB) != 0 {
 		t.Errorf("got len=%v, want len=%v", len(*mapDB), 0)
 	}

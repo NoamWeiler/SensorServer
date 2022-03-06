@@ -32,7 +32,7 @@ func dayOpt() int {
 	8	:	all week
 	9	:	today
 */
-func showDmenu() int {
+func showDMenu() int {
 	var opt int
 	for {
 		fmt.Printf("\nchoose day option\n1)\tshow by day - all past week\n2)\tshow by day - specific day\n3)\tshow by day - today\n5)\texit\n")
@@ -53,7 +53,7 @@ func showDmenu() int {
 	}
 }
 
-func showmainmenu() int {
+func showMainMenu() int {
 	var opt int
 	for {
 		fmt.Printf("\nchoose day option\n1)\tget info\n2)\tdisconnect\n3)\texit\n")
@@ -76,7 +76,7 @@ func sensorOpt() string {
 	return output
 }
 
-func showSmenu() string {
+func showSMenu() string {
 	var opt int
 	for {
 		fmt.Printf("\nplease choose an option for sensors:\n1)\tshow by sensor - all sensors\n2)\tshow by sensor - specific sensor\n5)\texit\n")
@@ -95,21 +95,21 @@ func showSmenu() string {
 	}
 }
 
-func showmenu() (int32, string) {
-	d := showDmenu()
+func showMenu() (int32, string) {
+	d := showDMenu()
 	if d == -1 { //if already want to quit - exit without further menu options
 		return int32(d), ""
 	}
-	s := showSmenu()
+	s := showSMenu()
 	return int32(d), s
 }
 
 func createRequest() *grpc_db.InfoReq {
-	d, s := showmenu()
+	d, s := showMenu()
 	return &grpc_db.InfoReq{DayBefore: d, SensorName: s}
 }
 
-func clientmenu() (*grpc_db.InfoReq, error) {
+func clientMenu() (*grpc_db.InfoReq, error) {
 	cr := createRequest()
 	if cr.SensorName == userExit || cr.DayBefore == -1 {
 		return nil, errors.New(userExit)
