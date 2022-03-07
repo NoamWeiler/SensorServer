@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	grpc_db "SensorServer/pkg/grpc_db"
@@ -12,11 +12,24 @@ import (
 	"net"
 )
 
+// ProtocolServer interface to represent a server
+type ProtocolServer interface {
+	newServer()
+	RunServer(ctx context.Context)
+	cleanup()
+}
+
 //interface to represent DB functionalities
 type sensorDB interface {
 	AddMeasure(string, int32)
 	GetInfo(string, int32) string
 	DayCleanup()
+}
+
+// GrpcServer struct to hold the GRPC's handlers
+type GrpcServer struct {
+	grpc_db.UnimplementedClientInfoServer   //handle client request
+	grpc_db.UnimplementedSensorStreamServer //hande sensors measures
 }
 
 var (
@@ -25,11 +38,13 @@ var (
 	gs               *grpc.Server
 	lis              net.Listener
 	db               sensorDB
+	verbose          *bool
 )
 
 const (
 	adminName = "yochbad"
 	adminPass = "123"
+	grpcPort  = 50051
 )
 
 func returnError(s string) error {
@@ -49,7 +64,7 @@ func debug(f string, s string) {
 
 // ClientInfo implementation
 
-func (s *server) ConnectClient(ctx context.Context, in *grpc_db.ConnReq) (*grpc_db.ConnRes, error) {
+func (s *GrpcServer) ConnectClient(ctx context.Context, in *grpc_db.ConnReq) (*grpc_db.ConnRes, error) {
 	f := "ConnectClient"
 	debug(f, fmt.Sprintf("%v", in))
 
@@ -66,7 +81,7 @@ func (s *server) ConnectClient(ctx context.Context, in *grpc_db.ConnReq) (*grpc_
 	return &grpc_db.ConnRes{Res: "Connected successfully"}, nil
 }
 
-func (s *server) DisconnectClient(ctx context.Context, in *grpc_db.DisConnReq) (*grpc_db.ConnRes, error) {
+func (s *GrpcServer) DisconnectClient(ctx context.Context, in *grpc_db.DisConnReq) (*grpc_db.ConnRes, error) {
 	f := "DisconnectClient"
 	debug(f, fmt.Sprintf("%v", "enter"))
 
@@ -80,7 +95,7 @@ func (s *server) DisconnectClient(ctx context.Context, in *grpc_db.DisConnReq) (
 	return &grpc_db.ConnRes{Res: "Disconnected successfully"}, nil
 }
 
-func (s *server) GetInfo(ctx context.Context, in *grpc_db.InfoReq) (*grpc_db.InfoRes, error) {
+func (s *GrpcServer) GetInfo(ctx context.Context, in *grpc_db.InfoReq) (*grpc_db.InfoRes, error) {
 	f := "GetInfo"
 	debug(f, fmt.Sprintf("args:%v", in))
 	//unpack request for sensorDB interface
@@ -91,7 +106,7 @@ func (s *server) GetInfo(ctx context.Context, in *grpc_db.InfoReq) (*grpc_db.Inf
 
 // SensorStream implementation
 
-func (s *server) ConnectSensor(ctx context.Context, in *grpc_db.ConnSensorReq) (*grpc_db.ConnSensorRes, error) {
+func (s *GrpcServer) ConnectSensor(ctx context.Context, in *grpc_db.ConnSensorReq) (*grpc_db.ConnSensorRes, error) {
 	f := "ConnectSensor"
 	var num int64
 	debug(f, fmt.Sprintf("args:%v", in))
@@ -101,7 +116,7 @@ func (s *server) ConnectSensor(ctx context.Context, in *grpc_db.ConnSensorReq) (
 	return &grpc_db.ConnSensorRes{Serial: fmt.Sprintf("sensor_%d", num)}, nil
 }
 
-func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_db.MeasureRes, error) {
+func (s *GrpcServer) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_db.MeasureRes, error) {
 	f := "SensorMeasure"
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
 	db.DayCleanup()
@@ -110,21 +125,25 @@ func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_
 	return &grpc_db.MeasureRes{}, nil
 }
 
-//implementation of protocolServer interface
-func (s *server) runServer(parentCtx context.Context) {
+func (s *GrpcServer) newServer() {
+	gs = grpc.NewServer()
+}
+
+// RunServer implementation of ProtocolServer interface
+func (s *GrpcServer) RunServer(parentCtx context.Context) {
 	//attach the goroutine's context to the goroutine of the server
 	_, cancelServer := context.WithCancel(parentCtx)
 	defer cancelServer()
 
 	var err error
-	lis, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", *grpcPort))
+	lis, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", grpcPort))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	gs = grpc.NewServer()
-	grpc_db.RegisterSensorStreamServer(gs, &server{})
-	grpc_db.RegisterClientInfoServer(gs, &server{})
+	//gs = grpc.NewServer()
+	grpc_db.RegisterSensorStreamServer(gs, &GrpcServer{})
+	grpc_db.RegisterClientInfoServer(gs, &GrpcServer{})
 	sensorCount <- 1
 
 	//DB - used sensorDB interface
@@ -145,8 +164,15 @@ func (s *server) runServer(parentCtx context.Context) {
 	}
 }
 
-func (s *server) cleanup() {
+func (s *GrpcServer) cleanup() {
 	adminIsConnected = false
 	gs.GracefulStop()
 	close(sensorCount)
+}
+
+func NewServer(v *bool) *GrpcServer {
+	verbose = v
+	gs := &GrpcServer{}
+	gs.newServer()
+	return gs
 }

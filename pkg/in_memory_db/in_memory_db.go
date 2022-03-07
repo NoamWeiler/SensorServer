@@ -135,8 +135,7 @@ func (sm *sensormap) AddMeasure(serial string, measure int32) {
 
 func (sm *sensormap) getInfoAllSensors(day int32) string {
 	var output strings.Builder
-	mapLen := sm.len()
-	strChan := make(chan string, mapLen)
+	strChan := make(chan string, sm.len())
 	sm.Range(func(k, v interface{}) bool {
 		go func(c chan<- string, sensormapElem *sensorWeekDB, s string, d int32) {
 			c <- sensormapElem.getInfoBySensorWeek(s, d)
@@ -145,8 +144,7 @@ func (sm *sensormap) getInfoAllSensors(day int32) string {
 	})
 
 	//get the results from all the sensorWeeks
-	for i := 0; i < mapLen; i++ {
-		sensorRes := <-strChan
+	for sensorRes := range strChan {
 		if _, err := fmt.Fprintf(&output, "%v", sensorRes); err != nil {
 			log.Println(err)
 		}
@@ -237,3 +235,9 @@ func (sm *sensormap) len() int {
 	})
 	return length
 }
+
+//TODO
+/*
+1) getInfoAllSensors - not working, need to think again about how to implement the DB (and range there specifically)
+
+*/

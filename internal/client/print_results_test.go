@@ -1,10 +1,14 @@
-package main
+package client
 
 import (
 	"bytes"
 	"fmt"
+	"github.com/jedib0t/go-pretty/v6/table"
 	"io"
+	"math"
 	"os"
+	"strconv"
+	"strings"
 	"testing"
 )
 
@@ -73,4 +77,29 @@ func TestPrintTable(t *testing.T) {
 			}
 		})
 	}
+}
+
+func printResult(s string) {
+	arr := strings.Split(s, ",")
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+	t.SetStyle(table.StyleLight)
+	t.AppendHeader(table.Row{"#SERIAL", "DAY", "MIN", "MAX", "AVG"})
+	for i := 0; i < len(arr)-1; i += 5 {
+		if arr[i] != "" && i > 0 {
+			t.AppendSeparator()
+		}
+		a, b, c := printHelper(arr[i+2], arr[i+3], arr[i+4])
+		t.AppendRows([]table.Row{
+			{arr[i], arr[i+1], a, b, c},
+		})
+	}
+	t.Render()
+}
+
+func printHelper(min, max, avg string) (string, string, string) {
+	if min == strconv.Itoa(math.MinInt) {
+		return "-", "-", "-"
+	}
+	return min, max, avg
 }
