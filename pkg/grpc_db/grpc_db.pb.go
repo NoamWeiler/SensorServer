@@ -209,7 +209,7 @@ func (x *InfoReq) GetSensorName() string {
 	return ""
 }
 
-func (x *InfoReq) GetDayBefore() int32 {
+func (x *InfoReq)GetDayBefore() int32 {
 	if x != nil {
 		return x.DayBefore
 	}

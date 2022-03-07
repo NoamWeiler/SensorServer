@@ -14,8 +14,8 @@ import (
 
 //interface to represent DB functionalities
 type sensorDB interface {
-	AddMeasure(string, int)
-	GetInfo(string, int) string
+	AddMeasure(string, int32)
+	GetInfo(string, int32) string
 	DayCleanup()
 }
 
@@ -84,7 +84,7 @@ func (s *server) GetInfo(ctx context.Context, in *grpc_db.InfoReq) (*grpc_db.Inf
 	f := "GetInfo"
 	debug(f, fmt.Sprintf("args:%v", in))
 	//unpack request for sensorDB interface
-	res := db.GetInfo(in.GetSensorName(), int(in.GetDayBefore()))
+	res := db.GetInfo(in.GetSensorName(), in.GetDayBefore())
 
 	return &grpc_db.InfoRes{Responce: res}, nil
 }
@@ -106,7 +106,7 @@ func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
 	db.DayCleanup()
 	//unpack request for sensorDB interface
-	db.AddMeasure(in.GetSerial(), int(in.GetM()))
+	db.AddMeasure(in.GetSerial(), in.GetM())
 	return &grpc_db.MeasureRes{}, nil
 }
 

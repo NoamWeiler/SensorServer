@@ -12,7 +12,7 @@ run_client:
 
 
 run_server_debug:
-	go run -race cmd/server/*.go -v
+	go run -race cmd/server/*.go
 
 run_server:
 	go run cmd/server/*.go

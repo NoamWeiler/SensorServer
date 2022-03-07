@@ -32,7 +32,7 @@ var (
 )
 
 func main() {
-	defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
+	defer profile.Start(profile.MemProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
 	flag.Parse()
 	ctx, cancel := context.WithCancel(context.Background())
 	g, gctx := errgroup.WithContext(ctx)

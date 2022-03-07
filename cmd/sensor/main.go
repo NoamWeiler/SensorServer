@@ -11,7 +11,7 @@ func main() {
 		"SensorServer.SensorStream.SensorMeasure",
 		"localhost:50051",
 		runner.WithProtoFile("./pkg/grpc_db/grpc_db.proto", []string{}),
-		runner.WithDataFromFile("./cmd/sensor/test1.json"),
+		runner.WithDataFromFile("./cmd/sensor/10k_test.json"),
 		runner.WithInsecure(true),
 	)
 

@@ -2,6 +2,7 @@ package In_memo_db
 
 import (
 	"fmt"
+	"go.uber.org/atomic"
 	"log"
 	"math"
 	"strings"
@@ -18,10 +19,10 @@ type sensormap struct {
 }
 
 type sensorDayDB struct {
-	max   int
-	min   int
-	count int
-	sum   int
+	max   atomic.Int32
+	min   atomic.Int32
+	count atomic.Int32
+	sum   atomic.Int32
 }
 
 type sensorWeekDB struct {
@@ -30,42 +31,45 @@ type sensorWeekDB struct {
 
 //day implementation
 func (s *sensorDayDB) getDayAvg() float32 {
-	if s.count == 0 {
+	count := s.count.Load()
+	if count == 0 {
 		return 0.0
 	}
-	return float32(s.sum) / float32(s.count)
+	return float32(s.sum.Load()) / float32(count)
 }
 
 func (s *sensorDayDB) getDayRes() (int, int, float32) {
-	return s.max, s.min, s.getDayAvg()
+	return int(s.max.Load()), int(s.min.Load()), s.getDayAvg()
 }
 
-func (s *sensorDayDB) AddMeasure(m int) {
-	s.count++
-	s.sum += m
-	s.min = func(a, b int) int {
+func (s *sensorDayDB) AddMeasure(m int32) {
+	s.count.Inc()
+	s.sum.Add(m)
+	min := func(a, b int32) int32 {
 		if a < b {
 			return a
 		}
 		return b
-	}(s.min, m)
-	s.max = func(a, b int) int {
+	}(s.min.Load(), m)
+	s.min.Swap(min)
+	max := func(a, b int32) int32 {
 		if a < b {
 			return b
 		}
 		return a
-	}(s.max, m)
+	}(s.max.Load(), m)
+	s.max.Swap(max)
 }
 
 func (s *sensorDayDB) resetDay() {
-	s.max = math.MinInt
-	s.min = math.MaxInt
-	s.count = 0
-	s.sum = 0
+	s.max.Swap(math.MinInt32)
+	s.min.Swap(math.MaxInt32)
+	s.count.Swap(0)
+	s.sum.Swap(0)
 }
 
 // AddMeasure week implementation
-func (sw *sensorWeekDB) AddMeasure(m int) {
+func (sw *sensorWeekDB) AddMeasure(m int32) {
 	dayIndex := int(time.Now().Weekday()) //Sunday=0
 	sw.week[dayIndex].AddMeasure(m)
 }
@@ -84,7 +88,7 @@ func newSensorWeek() *sensorWeekDB {
 	return sw
 }
 
-func (sw *sensorWeekDB) getInfoBySensorWeek(s string, d int) string {
+func (sw *sensorWeekDB) getInfoBySensorWeek(s string, d int32) string {
 
 	var output strings.Builder
 	switch d {
@@ -94,12 +98,12 @@ func (sw *sensorWeekDB) getInfoBySensorWeek(s string, d int) string {
 		}
 	case 8: //all week
 		for i, d := range sw.week {
-			if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&d, i)); err != nil {
+			if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&d, int32(i))); err != nil {
 				log.Println(err)
 			}
 		}
 	case 9: //today
-		today := int(time.Now().Weekday())
+		today := int32(time.Now().Weekday())
 		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&sw.week[today], today)); err != nil {
 			log.Println(err)
 		}
@@ -120,7 +124,7 @@ func (sm *sensormap) get(s string) *sensorWeekDB {
 }
 
 // AddMeasure - implementation of sensorDB interface
-func (sm *sensormap) AddMeasure(serial string, measure int) {
+func (sm *sensormap) AddMeasure(serial string, measure int32) {
 	sw := sm.get(serial)
 	if sw == nil {
 		sm.addSensorToMap(serial)
@@ -129,12 +133,12 @@ func (sm *sensormap) AddMeasure(serial string, measure int) {
 	sw.AddMeasure(measure)
 }
 
-func (sm *sensormap) getInfoAllSensors(day int) string {
+func (sm *sensormap) getInfoAllSensors(day int32) string {
 	var output strings.Builder
 	mapLen := sm.len()
 	strChan := make(chan string, mapLen)
 	sm.Range(func(k, v interface{}) bool {
-		go func(c chan<- string, sensormapElem *sensorWeekDB, s string, d int) {
+		go func(c chan<- string, sensormapElem *sensorWeekDB, s string, d int32) {
 			c <- sensormapElem.getInfoBySensorWeek(s, d)
 		}(strChan, v.(*sensorWeekDB), k.(string), day)
 		return true
@@ -147,17 +151,17 @@ func (sm *sensormap) getInfoAllSensors(day int) string {
 			log.Println(err)
 		}
 	}
-
+	close(strChan)
 	return output.String()
 }
 
-func buildDayString(day *sensorDayDB, d int) string {
+func buildDayString(day *sensorDayDB, d int32) string {
 	a, b, c := day.getDayRes()
 	//order: sensorSerial,day,max,min,avg
 	return fmt.Sprintf("%v,%v,%v,%v,", time.Weekday(d), a, b, c)
 }
 
-func (sm *sensormap) getInfoBySensor(s string, d int) string {
+func (sm *sensormap) getInfoBySensor(s string, d int32) string {
 	if s == "" {
 		return s
 	}
@@ -170,7 +174,7 @@ func (sm *sensormap) getInfoBySensor(s string, d int) string {
 	return elem.getInfoBySensorWeek(s, d)
 }
 
-func (sm *sensormap) GetInfo(serial string, daysBefore int) string {
+func (sm *sensormap) GetInfo(serial string, daysBefore int32) string {
 	if serial == "all" {
 		return sm.getInfoAllSensors(daysBefore)
 	}
