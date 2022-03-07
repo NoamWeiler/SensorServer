@@ -13,8 +13,6 @@ var (
 	GlobalDay time.Weekday
 )
 
-//type sensorMap sync.Map //implements SensorDB interface
-//type sensormap map[string]*sensorWeekDB //implements SensorDB interface
 type sensormap struct {
 	sync.Map //implements SensorDB interface
 }
@@ -28,7 +26,6 @@ type sensorDayDB struct {
 
 type sensorWeekDB struct {
 	week []sensorDayDB
-	//mu   sync.Mutex
 }
 
 //day implementation
@@ -69,15 +66,11 @@ func (s *sensorDayDB) resetDay() {
 
 // AddMeasure week implementation
 func (sw *sensorWeekDB) AddMeasure(m int) {
-	//sw.mu.Lock()
-	//defer sw.mu.Unlock()
 	dayIndex := int(time.Now().Weekday()) //Sunday=0
 	sw.week[dayIndex].AddMeasure(m)
 }
 
 func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
-	//sw.mu.Lock()
-	//defer sw.mu.Unlock()
 	d := int(weekday)
 	sw.week[d].resetDay()
 }
@@ -90,6 +83,34 @@ func newSensorWeek() *sensorWeekDB {
 	}
 	return sw
 }
+
+func (sw *sensorWeekDB) getInfoBySensorWeek(s string, d int) string {
+
+	var output strings.Builder
+	switch d {
+	case 0, 1, 2, 3, 4, 5, 6:
+		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&sw.week[d], d)); err != nil {
+			log.Println(err)
+		}
+	case 8: //all week
+		for i, d := range sw.week {
+			if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&d, i)); err != nil {
+				log.Println(err)
+			}
+		}
+	case 9: //today
+		today := int(time.Now().Weekday())
+		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&sw.week[today], today)); err != nil {
+			log.Println(err)
+		}
+	default:
+		log.Println("getInfoBySensor - error: wrong day option:", d)
+		return ""
+	}
+
+	return fmt.Sprintf("%s%s", s, output.String())
+}
+
 func (sm *sensormap) get(s string) *sensorWeekDB {
 	interfaceValue, ok := sm.Load(s)
 	if !ok {
@@ -100,8 +121,6 @@ func (sm *sensormap) get(s string) *sensorWeekDB {
 
 // AddMeasure - implementation of sensorDB interface
 func (sm *sensormap) AddMeasure(serial string, measure int) {
-	//_, ok := (*sm)[serial]
-	//(*sm)[serial].AddMeasure(measure)
 	sw := sm.get(serial)
 	if sw == nil {
 		sm.addSensorToMap(serial)
@@ -112,15 +131,23 @@ func (sm *sensormap) AddMeasure(serial string, measure int) {
 
 func (sm *sensormap) getInfoAllSensors(day int) string {
 	var output strings.Builder
-	//for k := range *sm {
+	mapLen := sm.len()
+	strChan := make(chan string, mapLen)
 	sm.Range(func(k, v interface{}) bool {
-		str := sm.getInfoBySensor(k.(string), day)
-		if _, err := fmt.Fprintf(&output, "%v", str); err != nil {
-			log.Println(err)
-			return false
-		}
+		go func(c chan<- string, sensormapElem *sensorWeekDB, s string, d int) {
+			c <- sensormapElem.getInfoBySensorWeek(s, d)
+		}(strChan, v.(*sensorWeekDB), k.(string), day)
 		return true
 	})
+
+	//get the results from all the sensorWeeks
+	for i := 0; i < mapLen; i++ {
+		sensorRes := <-strChan
+		if _, err := fmt.Fprintf(&output, "%v", sensorRes); err != nil {
+			log.Println(err)
+		}
+	}
+
 	return output.String()
 }
 
@@ -131,38 +158,16 @@ func buildDayString(day *sensorDayDB, d int) string {
 }
 
 func (sm *sensormap) getInfoBySensor(s string, d int) string {
-	//get element
-	//elem, ok := (*sm)[s]
-	//elem.mu.Lock()
-	//defer elem.mu.Unlock()
 	if s == "" {
 		return s
 	}
 	elem := sm.get(s)
 
-	var output strings.Builder
-	switch d {
-	case 0, 1, 2, 3, 4, 5, 6:
-		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&elem.week[d], d)); err != nil {
-			log.Println(err)
-		}
-	case 8: //all week
-		for i, d := range elem.week {
-			if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&d, i)); err != nil {
-				log.Println(err)
-			}
-		}
-	case 9: //today
-		today := int(time.Now().Weekday())
-		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&elem.week[today], today)); err != nil {
-			log.Println(err)
-		}
-	default:
-		log.Println("getInfoBySensor - error: wrong day option:", d)
+	if elem == nil {
 		return ""
 	}
 
-	return fmt.Sprintf("%s%s", s, output.String())
+	return elem.getInfoBySensorWeek(s, d)
 }
 
 func (sm *sensormap) GetInfo(serial string, daysBefore int) string {
@@ -174,7 +179,6 @@ func (sm *sensormap) GetInfo(serial string, daysBefore int) string {
 
 func (sm *sensormap) addSensorToMap(s string) {
 	sw := newSensorWeek()
-	//(*sm)[s] = &sw
 	(*sm).Store(s, sw)
 }
 
@@ -203,14 +207,8 @@ func (sm *sensormap) DayCleanup() {
 	}
 
 	log.Println(fname, "Starting day cleanup in DB")
-	//wg.Add(len(*sm))
-	//for _, v := range *sm {
-	//	go func(s *sensorWeekDB) {
-	//		defer wg.Done()
-	//		s.cleanDay(now)
-	//	}(v)
-	//}
-	sm.Range(func(k, v interface{}) bool {
+
+	sm.Range(func(_, v interface{}) bool {
 		sensorWeek := v.(*sensorWeekDB)
 		wg.Add(1)
 

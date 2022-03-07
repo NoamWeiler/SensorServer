@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	report, err := runner.Run(
+	_, err := runner.Run(
 		"SensorServer.SensorStream.SensorMeasure",
 		"localhost:50051",
 		runner.WithProtoFile("./pkg/grpc_db/grpc_db.proto", []string{}),
@@ -29,5 +29,5 @@ func main() {
 	//	fmt.Println(err2)
 	//}
 
-	fmt.Println(report)
+	//fmt.Println(report)
 }

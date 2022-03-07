@@ -106,7 +106,7 @@ func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_
 	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
 	db.DayCleanup()
 	//unpack request for sensorDB interface
-	go db.AddMeasure(in.GetSerial(), int(in.GetM())) //run in parallel
+	db.AddMeasure(in.GetSerial(), int(in.GetM()))
 	return &grpc_db.MeasureRes{}, nil
 }
 
