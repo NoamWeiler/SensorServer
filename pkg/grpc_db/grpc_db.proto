@@ -49,7 +49,7 @@ message InfoRes{
 
 service SensorStream {
   rpc ConnectSensor (ConnSensorReq) returns (ConnSensorRes){}
-  rpc Sensormeasure (measure) returns (measureRes){}
+  rpc SensorMeasure (measure) returns (measureRes){}
   //  rpc Sensormeasure (stream measure) returns (measureRes){}
 }
 

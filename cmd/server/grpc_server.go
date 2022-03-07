@@ -111,7 +111,11 @@ func (s *server) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_
 }
 
 //implementation of protocolServer interface
-func (s *server) runServer() {
+func (s *server) runServer(parentCtx context.Context) {
+	//attach the goroutine's context to the goroutine of the server
+	_, cancelServer := context.WithCancel(parentCtx)
+	defer cancelServer()
+
 	var err error
 	lis, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", *grpcPort))
 	if err != nil {
@@ -127,8 +131,17 @@ func (s *server) runServer() {
 	db = In_memo_db.SensorMap()
 
 	log.Printf("server listening at %v", lis.Addr())
-	if err := gs.Serve(lis); err != nil {
-		log.Fatalf("%v\n", err)
+
+	select {
+	case <-parentCtx.Done():
+		log.Println("shutting GRPC server down")
+		s.cleanup()
+	default:
+		go func() {
+			if err := gs.Serve(lis); err != nil {
+				log.Fatalf("%v\n", err)
+			}
+		}()
 	}
 }
 

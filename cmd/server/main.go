@@ -21,7 +21,7 @@ type server struct {
 
 // interface to represent a server
 type protocolServer interface {
-	runServer()
+	runServer(ctx context.Context)
 	cleanup()
 }
 
@@ -34,17 +34,13 @@ var (
 func main() {
 	defer profile.Start(profile.CPUProfile, profile.ProfilePath("."), profile.NoShutdownHook).Stop()
 	flag.Parse()
-	shutDownChan := make(chan bool, 1)
 	ctx, cancel := context.WithCancel(context.Background())
 	g, gctx := errgroup.WithContext(ctx)
 
 	//GRPC server
 	g.Go(func() error {
 		grpcServer = &server{}
-		go grpcServer.runServer()
-		<-shutDownChan
-		grpcServer.cleanup()
-		close(shutDownChan)
+		grpcServer.runServer(gctx)
 		return nil
 	})
 
@@ -57,8 +53,7 @@ func main() {
 		case sig := <-sigChan:
 			close(sigChan)
 			fmt.Printf("Received signal: %s\n", sig)
-			cancel()             //calling cancel of the main context
-			shutDownChan <- true //cleanup signal to the grpc server
+			cancel()
 			break
 		case <-gctx.Done():
 			fmt.Printf("closing signal goroutine\n")
@@ -67,7 +62,7 @@ func main() {
 		return nil
 	})
 
-	// wait for all errgroup goroutines
+	//wait for all errgroup goroutines
 	err := g.Wait()
 	if err != nil {
 		if errors.Is(err, context.Canceled) {

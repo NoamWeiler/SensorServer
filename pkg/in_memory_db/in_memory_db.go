@@ -14,7 +14,10 @@ var (
 )
 
 //type sensorMap sync.Map //implements SensorDB interface
-type sensormap map[string]*sensorWeekDB //implements SensorDB interface
+//type sensormap map[string]*sensorWeekDB //implements SensorDB interface
+type sensormap struct {
+	sync.Map //implements SensorDB interface
+}
 
 type sensorDayDB struct {
 	max   int
@@ -25,7 +28,7 @@ type sensorDayDB struct {
 
 type sensorWeekDB struct {
 	week []sensorDayDB
-	mu   sync.Mutex
+	//mu   sync.Mutex
 }
 
 //day implementation
@@ -64,39 +67,60 @@ func (s *sensorDayDB) resetDay() {
 	s.sum = 0
 }
 
-//week implementation
+// AddMeasure week implementation
 func (sw *sensorWeekDB) AddMeasure(m int) {
-	sw.mu.Lock()
-	defer sw.mu.Unlock()
+	//sw.mu.Lock()
+	//defer sw.mu.Unlock()
 	dayIndex := int(time.Now().Weekday()) //Sunday=0
 	sw.week[dayIndex].AddMeasure(m)
 }
 
 func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
-	sw.mu.Lock()
-	defer sw.mu.Unlock()
+	//sw.mu.Lock()
+	//defer sw.mu.Unlock()
 	d := int(weekday)
 	sw.week[d].resetDay()
 }
 
+func newSensorWeek() *sensorWeekDB {
+	sw := &sensorWeekDB{week: make([]sensorDayDB, 7)}
+	sww := sw.week
+	for i := range sww {
+		sww[i].resetDay()
+	}
+	return sw
+}
+func (sm *sensormap) get(s string) *sensorWeekDB {
+	interfaceValue, ok := sm.Load(s)
+	if !ok {
+		return nil
+	}
+	return interfaceValue.(*sensorWeekDB) //cast to sensorWeekDB, dou to LoadOrStore returns interface{}
+}
+
 // AddMeasure - implementation of sensorDB interface
 func (sm *sensormap) AddMeasure(serial string, measure int) {
-	_, ok := (*sm)[serial]
-	if !ok {
-		sm.addSensorTomap(serial)
+	//_, ok := (*sm)[serial]
+	//(*sm)[serial].AddMeasure(measure)
+	sw := sm.get(serial)
+	if sw == nil {
+		sm.addSensorToMap(serial)
+		sw = sm.get(serial)
 	}
-	(*sm)[serial].AddMeasure(measure)
+	sw.AddMeasure(measure)
 }
 
 func (sm *sensormap) getInfoAllSensors(day int) string {
 	var output strings.Builder
-	for k := range *sm {
-		str := sm.getInfoBySensor(k, day)
+	//for k := range *sm {
+	sm.Range(func(k, v interface{}) bool {
+		str := sm.getInfoBySensor(k.(string), day)
 		if _, err := fmt.Fprintf(&output, "%v", str); err != nil {
 			log.Println(err)
-			return fmt.Sprintf("Error:%v", err)
+			return false
 		}
-	}
+		return true
+	})
 	return output.String()
 }
 
@@ -108,12 +132,13 @@ func buildDayString(day *sensorDayDB, d int) string {
 
 func (sm *sensormap) getInfoBySensor(s string, d int) string {
 	//get element
-	elem, ok := (*sm)[s]
-	if !ok {
-		return ""
+	//elem, ok := (*sm)[s]
+	//elem.mu.Lock()
+	//defer elem.mu.Unlock()
+	if s == "" {
+		return s
 	}
-	elem.mu.Lock()
-	defer elem.mu.Unlock()
+	elem := sm.get(s)
 
 	var output strings.Builder
 	switch d {
@@ -147,17 +172,16 @@ func (sm *sensormap) GetInfo(serial string, daysBefore int) string {
 	return sm.getInfoBySensor(serial, daysBefore)
 }
 
-func (sm *sensormap) addSensorTomap(s string) {
-	sw := sensorWeekDB{week: make([]sensorDayDB, 7)}
-	sww := sw.week
-	for i := range sww {
-		sww[i].resetDay()
-	}
-	(*sm)[s] = &sw
+func (sm *sensormap) addSensorToMap(s string) {
+	sw := newSensorWeek()
+	//(*sm)[s] = &sw
+	(*sm).Store(s, sw)
 }
 
 func SensorMap() *sensormap {
-	return &sensormap{}
+	GlobalDay = time.Now().Weekday() //update global
+	output := &sensormap{}
+	return output
 }
 
 /*
@@ -179,15 +203,35 @@ func (sm *sensormap) DayCleanup() {
 	}
 
 	log.Println(fname, "Starting day cleanup in DB")
-	wg.Add(len(*sm))
-	for _, v := range *sm {
+	//wg.Add(len(*sm))
+	//for _, v := range *sm {
+	//	go func(s *sensorWeekDB) {
+	//		defer wg.Done()
+	//		s.cleanDay(now)
+	//	}(v)
+	//}
+	sm.Range(func(k, v interface{}) bool {
+		sensorWeek := v.(*sensorWeekDB)
+		wg.Add(1)
+
 		go func(s *sensorWeekDB) {
 			defer wg.Done()
 			s.cleanDay(now)
-		}(v)
-	}
+		}(sensorWeek)
+
+		return true
+	})
 
 	wg.Wait()
 	log.Println(fname, now)
 	GlobalDay = now //update global
+}
+
+func (sm *sensormap) len() int {
+	length := 0
+	sm.Range(func(_, _ interface{}) bool {
+		length++
+		return true
+	})
+	return length
 }
