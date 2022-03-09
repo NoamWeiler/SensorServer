@@ -16,6 +16,7 @@ const (
 	UserExit              = "user Exit"
 	loginConnectedMessage = "Connected successfully"
 	loginCredentialsError = "Wrong credentials"
+	alreadyConnectedError = "yochbad is already connected"
 )
 
 var (
@@ -144,6 +145,16 @@ func ConnectClient() *grpc.ClientConn {
 	return conn
 }
 
+func disconnectClient(ctx context.Context) {
+	r, err := c.DisconnectClient(ctx, &grpc_db.DisConnReq{})
+	if err != nil {
+		fmt.Println("Error: ", UnpackError(err))
+	} else {
+		log.Println(r.GetRes())
+		isConnected = false
+	}
+}
+
 func MenuLoop() {
 forLoop:
 	for {
@@ -167,16 +178,11 @@ forLoop:
 					PrintResult(res.GetResponce())
 				}
 			case 2: //disconnect
-				r, err := c.DisconnectClient(ctx, &grpc_db.DisConnReq{})
-				if err != nil {
-					fmt.Println("Error:", UnpackError(err))
-				} else {
-					log.Println(r.GetRes())
-					isConnected = false
-				}
+				disconnectClient(ctx)
+				fmt.Println("DFGDFG")
 			case 3: //exit
 				cancel()
-				_, _ = c.DisconnectClient(ctx, &grpc_db.DisConnReq{}) //disconnect by default on exit - my design
+				disconnectClient(ctx) //disconnect by default on exit - my design
 				break forLoop
 			default:
 			}

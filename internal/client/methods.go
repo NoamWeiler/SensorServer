@@ -41,7 +41,7 @@ func NewConnReq() *grpcdb.ConnReq {
 func VerifyLogin(r *grpcdb.ConnRes, err error) bool {
 	res := ""
 	if err != nil {
-		if e := UnpackError(err); e == loginCredentialsError {
+		if e := UnpackError(err); e == loginCredentialsError || e == alreadyConnectedError {
 			log.Println("Error:", e)
 		} else {
 			log.Fatalf("Error:%s", e)

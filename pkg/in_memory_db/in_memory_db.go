@@ -43,25 +43,6 @@ func (s *sensorDayDB) getDayRes() (int32, int32, float32) {
 }
 
 func (s *sensorDayDB) AddMeasure(m int32) {
-	/*
-		s.count.Inc()
-		s.sum.Add(m)
-		min := func(a, b int32) int32 {
-			if a < b {
-				return a
-			}
-			return b
-		}(s.min.Load(), m)
-		s.min.Swap(min)
-		max := func(a, b int32) int32 {
-			if a < b {
-				return b
-			}
-			return a
-		}(s.max.Load(), m)
-		s.max.Swap(max)
-
-	*/
 	s.count++
 	s.sum += m
 	s.min = func(a, b int32) int32 {
@@ -145,21 +126,18 @@ func (sm *sensormap) AddMeasure(serial string, measure int32) {
 func (sm *sensormap) getInfoAllSensors(day int32) string {
 	sm.RLock()
 	defer sm.RUnlock()
-	var output strings.Builder
 	resChan := make(chan string, sm.len())
-	var wg = &sync.WaitGroup{}
+	finalResChan := make(chan string, 1)
 
 	for serial, sensorWeek := range sm.db {
-		wg.Add(1)
 		go func(c chan<- string, sensorWeek *sensorWeekDB, s string, d int32) {
-			defer wg.Done()
 			c <- sensorWeek.getInfoBySensorWeek(s, d)
 		}(resChan, sensorWeek, serial, day)
 	}
 
 	//goroutine receiver for results from all the sensorWeeks
-	go func(total int) {
-		wg.Add(1)
+	go func(total int, finalResChan chan<- string) {
+		var output strings.Builder
 		var counter = 0
 		for sensorRes := range resChan {
 			if _, err := fmt.Fprintf(&output, "%v", sensorRes); err != nil {
@@ -168,13 +146,13 @@ func (sm *sensormap) getInfoAllSensors(day int32) string {
 			counter++
 			if counter == total {
 				close(resChan)
-				wg.Done()
+				finalResChan <- output.String() //write output to main goroutine
 			}
 		}
-	}(sm.len())
+	}(sm.len(), finalResChan)
 
-	wg.Wait()
-	return output.String()
+	output := <-finalResChan //wait or answer from receiver
+	return output
 }
 
 func buildDayString(day *sensorDayDB, d int32) string {
