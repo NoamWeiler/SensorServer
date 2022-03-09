@@ -130,33 +130,11 @@ func (sm *sensormap) getInfoAllSensors(day int32) string {
 	if len(sm.db) == 0 {
 		return ""
 	}
-	
-	resChan := make(chan string, sm.len())
+
+	// run the query with WorkerPool
 	finalResChan := make(chan string, 1)
-
-	for serial, sensorWeek := range sm.db {
-		go func(c chan<- string, sensorWeek *sensorWeekDB, s string, d int32) {
-			c <- sensorWeek.getInfoBySensorWeek(s, d)
-		}(resChan, sensorWeek, serial, day)
-	}
-
-	//goroutine receiver for results from all the sensorWeeks
-	go func(total int, finalResChan chan<- string) {
-		var output strings.Builder
-		var counter = 0
-		for sensorRes := range resChan {
-			if _, err := fmt.Fprintf(&output, "%v", sensorRes); err != nil {
-				log.Println(err)
-			}
-			counter++
-			if counter == total {
-				close(resChan)
-				finalResChan <- output.String() //write output to main goroutine
-			}
-		}
-	}(sm.len(), finalResChan)
-
-	output := <-finalResChan //wait or answer from receiver
+	GetInfoWorkerPool(sm, day, finalResChan)
+	output := <-finalResChan
 	return output
 }
 
