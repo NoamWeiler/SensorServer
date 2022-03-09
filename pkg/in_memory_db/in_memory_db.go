@@ -2,7 +2,6 @@ package In_memo_db
 
 import (
 	"fmt"
-	"go.uber.org/atomic"
 	"log"
 	"math"
 	"strings"
@@ -15,14 +14,15 @@ var (
 )
 
 type sensormap struct {
-	sync.Map //implements SensorDB interface
+	db map[string]*sensorWeekDB
+	sync.RWMutex
 }
 
 type sensorDayDB struct {
-	max   atomic.Int32
-	min   atomic.Int32
-	count atomic.Int32
-	sum   atomic.Int32
+	max   int32
+	min   int32
+	count int32
+	sum   int32
 }
 
 type sensorWeekDB struct {
@@ -31,41 +31,58 @@ type sensorWeekDB struct {
 
 //day implementation
 func (s *sensorDayDB) getDayAvg() float32 {
-	count := s.count.Load()
+	count := s.count
 	if count == 0 {
 		return 0.0
 	}
-	return float32(s.sum.Load()) / float32(count)
+	return float32(s.sum) / float32(count)
 }
 
-func (s *sensorDayDB) getDayRes() (int, int, float32) {
-	return int(s.max.Load()), int(s.min.Load()), s.getDayAvg()
+func (s *sensorDayDB) getDayRes() (int32, int32, float32) {
+	return s.max, s.min, s.getDayAvg()
 }
 
 func (s *sensorDayDB) AddMeasure(m int32) {
-	s.count.Inc()
-	s.sum.Add(m)
-	min := func(a, b int32) int32 {
+	/*
+		s.count.Inc()
+		s.sum.Add(m)
+		min := func(a, b int32) int32 {
+			if a < b {
+				return a
+			}
+			return b
+		}(s.min.Load(), m)
+		s.min.Swap(min)
+		max := func(a, b int32) int32 {
+			if a < b {
+				return b
+			}
+			return a
+		}(s.max.Load(), m)
+		s.max.Swap(max)
+
+	*/
+	s.count++
+	s.sum += m
+	s.min = func(a, b int32) int32 {
 		if a < b {
 			return a
 		}
 		return b
-	}(s.min.Load(), m)
-	s.min.Swap(min)
-	max := func(a, b int32) int32 {
-		if a < b {
-			return b
+	}(s.min, m)
+	s.max = func(a, b int32) int32 {
+		if a > b {
+			return a
 		}
-		return a
-	}(s.max.Load(), m)
-	s.max.Swap(max)
+		return b
+	}(s.max, m)
 }
 
 func (s *sensorDayDB) resetDay() {
-	s.max.Swap(math.MinInt32)
-	s.min.Swap(math.MaxInt32)
-	s.count.Swap(0)
-	s.sum.Swap(0)
+	s.max = math.MinInt32
+	s.min = math.MaxInt32
+	s.count = 0
+	s.sum = 0
 }
 
 // AddMeasure week implementation
@@ -115,41 +132,48 @@ func (sw *sensorWeekDB) getInfoBySensorWeek(s string, d int32) string {
 	return fmt.Sprintf("%s%s", s, output.String())
 }
 
-func (sm *sensormap) get(s string) *sensorWeekDB {
-	interfaceValue, ok := sm.Load(s)
-	if !ok {
-		return nil
-	}
-	return interfaceValue.(*sensorWeekDB) //cast to sensorWeekDB, dou to LoadOrStore returns interface{}
-}
-
 // AddMeasure - implementation of sensorDB interface
 func (sm *sensormap) AddMeasure(serial string, measure int32) {
-	sw := sm.get(serial)
-	if sw == nil {
+	sm.Lock()
+	defer sm.Unlock()
+	if _, ok := sm.db[serial]; !ok {
 		sm.addSensorToMap(serial)
-		sw = sm.get(serial)
 	}
-	sw.AddMeasure(measure)
+	sm.db[serial].AddMeasure(measure)
 }
 
 func (sm *sensormap) getInfoAllSensors(day int32) string {
+	sm.RLock()
+	defer sm.RUnlock()
 	var output strings.Builder
-	strChan := make(chan string, sm.len())
-	sm.Range(func(k, v interface{}) bool {
-		go func(c chan<- string, sensormapElem *sensorWeekDB, s string, d int32) {
-			c <- sensormapElem.getInfoBySensorWeek(s, d)
-		}(strChan, v.(*sensorWeekDB), k.(string), day)
-		return true
-	})
+	resChan := make(chan string, sm.len())
+	var wg = &sync.WaitGroup{}
 
-	//get the results from all the sensorWeeks
-	for sensorRes := range strChan {
-		if _, err := fmt.Fprintf(&output, "%v", sensorRes); err != nil {
-			log.Println(err)
-		}
+	for serial, sensorWeek := range sm.db {
+		wg.Add(1)
+		go func(c chan<- string, sensorWeek *sensorWeekDB, s string, d int32) {
+			defer wg.Done()
+			c <- sensorWeek.getInfoBySensorWeek(s, d)
+		}(resChan, sensorWeek, serial, day)
 	}
-	close(strChan)
+
+	//goroutine receiver for results from all the sensorWeeks
+	go func(total int) {
+		wg.Add(1)
+		var counter = 0
+		for sensorRes := range resChan {
+			if _, err := fmt.Fprintf(&output, "%v", sensorRes); err != nil {
+				log.Println(err)
+			}
+			counter++
+			if counter == total {
+				close(resChan)
+				wg.Done()
+			}
+		}
+	}(sm.len())
+
+	wg.Wait()
 	return output.String()
 }
 
@@ -163,13 +187,13 @@ func (sm *sensormap) getInfoBySensor(s string, d int32) string {
 	if s == "" {
 		return s
 	}
-	elem := sm.get(s)
-
-	if elem == nil {
+	sm.RLock()
+	defer sm.RUnlock()
+	if _, ok := sm.db[s]; !ok {
 		return ""
 	}
 
-	return elem.getInfoBySensorWeek(s, d)
+	return sm.db[s].getInfoBySensorWeek(s, d)
 }
 
 func (sm *sensormap) GetInfo(serial string, daysBefore int32) string {
@@ -181,12 +205,12 @@ func (sm *sensormap) GetInfo(serial string, daysBefore int32) string {
 
 func (sm *sensormap) addSensorToMap(s string) {
 	sw := newSensorWeek()
-	(*sm).Store(s, sw)
+	sm.db[s] = sw
 }
 
 func SensorMap() *sensormap {
 	GlobalDay = time.Now().Weekday() //update global
-	output := &sensormap{}
+	output := &sensormap{db: make(map[string]*sensorWeekDB, 1000)}
 	return output
 }
 
@@ -199,6 +223,8 @@ func SensorMap() *sensormap {
 	If so - need to clean the current day (run on parallel on all sensorWeekDB and tell then to reset the day)
 */
 func (sm *sensormap) DayCleanup() {
+	sm.Lock()
+	defer sm.Unlock()
 	fname := "dayCleanup"
 	var wg sync.WaitGroup
 	now := time.Now().Weekday()
@@ -210,17 +236,14 @@ func (sm *sensormap) DayCleanup() {
 
 	log.Println(fname, "Starting day cleanup in DB")
 
-	sm.Range(func(_, v interface{}) bool {
-		sensorWeek := v.(*sensorWeekDB)
+	for _, sensorWeek := range sm.db {
 		wg.Add(1)
 
 		go func(s *sensorWeekDB) {
 			defer wg.Done()
 			s.cleanDay(now)
 		}(sensorWeek)
-
-		return true
-	})
+	}
 
 	wg.Wait()
 	log.Println(fname, now)
@@ -228,16 +251,13 @@ func (sm *sensormap) DayCleanup() {
 }
 
 func (sm *sensormap) len() int {
-	length := 0
-	sm.Range(func(_, _ interface{}) bool {
-		length++
-		return true
-	})
-	return length
+	sm.RLock()
+	defer sm.RUnlock()
+	return len(sm.db)
 }
 
 //TODO
 /*
-1) getInfoAllSensors - not working, need to think again about how to implement the DB (and range there specifically)
+1)
 
 */

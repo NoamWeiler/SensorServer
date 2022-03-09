@@ -1,20 +1,26 @@
 package In_memo_db
 
 import (
+	"SensorServer/internal/client"
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 	"time"
 )
 
-var emptydb = ""
-var d0 = "sensor_1,Sunday,-9223372036854775808,9223372036854775807,0,"
-var d1 = "sensor_1,Monday,-9223372036854775808,9223372036854775807,0,"
-var d2 = "sensor_1,Tuesday,-9223372036854775808,9223372036854775807,0,"
-var d3 = "sensor_1,Wednesday,-9223372036854775808,9223372036854775807,0,"
-var d4 = "sensor_1,Thursday,-9223372036854775808,9223372036854775807,0,"
-var d5 = "sensor_1,Friday,-9223372036854775808,9223372036854775807,0,"
-var d6 = "sensor_1,Saturday,-9223372036854775808,9223372036854775807,0,"
+var (
+	emptydb = ""
+	d0      = "sensor_1,Sunday,-2147483648,2147483647,0,"
+	d1      = "sensor_1,Monday,-2147483648,2147483647,0,"
+	d2      = "sensor_1,Tuesday,-2147483648,2147483647,0,"
+	d3      = "sensor_1,Wednesday,-2147483648,2147483647,0,"
+	d4      = "sensor_1,Thursday,-2147483648,2147483647,0,"
+	d5      = "sensor_1,Friday,-2147483648,2147483647,0,"
+	d6      = "sensor_1,Saturday,-2147483648,2147483647,0,"
+	min     = math.MinInt32
+	max     = math.MaxInt32
+)
 
 func TestGetInfoBySensor_emptyDB(t *testing.T) {
 	testName := "TestGetInfoBySensor_emptyDB"
@@ -36,9 +42,9 @@ func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 		mapDB.addSensorToMap(s)
 		for i := 0; i < 7; i += 1 {
 			if i != 0 {
-				fmt.Fprintf(&tmgrpc_dbuff, "%v", fmt.Sprintf("%s,%s,-9223372036854775808,9223372036854775807,0,", "", time.Weekday(i)))
+				fmt.Fprintf(&tmgrpc_dbuff, "%v", fmt.Sprintf("%s,%s,%d,%d,0,", "", time.Weekday(i), min, max))
 			} else {
-				fmt.Fprintf(&tmgrpc_dbuff, "%v", fmt.Sprintf("%s,%s,-9223372036854775808,9223372036854775807,0,", s, time.Weekday(i)))
+				fmt.Fprintf(&tmgrpc_dbuff, "%v", fmt.Sprintf("%s,%s,%d,%d,0,", s, time.Weekday(i), min, max))
 			}
 		}
 	}
@@ -46,7 +52,11 @@ func TestGetInfoBySensor_SensorsNoTraffic(t *testing.T) {
 	t.Run(testName, func(t *testing.T) {
 		s := mapDB.GetInfo("all", 8)
 		if len(s) != len(res) {
-			t.Errorf("got %v, want %v", s, res)
+			t.Errorf("Different output")
+			fmt.Println("got:")
+			client.PrintResult(s)
+			fmt.Println("\n\n------------------------\n\nwanted:")
+			client.PrintResult(res)
 		}
 	})
 }
@@ -61,9 +71,9 @@ func TestAddMeasure(t *testing.T) {
 
 	var tests = []string{d0, d1, d2, d3, d4, d5, d6}
 	now := time.Now().Weekday()
-	today := int(now)
-
-	for i := 0; i < 7; i++ {
+	today := int32(now)
+	var i int32
+	for i = 0; i < 7; i++ {
 		t.Run(testName, func(t *testing.T) {
 			curDay := (today + i) % 7
 			s := mapDB.getInfoBySensor(sname, curDay)
