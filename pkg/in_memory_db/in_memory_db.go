@@ -126,6 +126,11 @@ func (sm *sensormap) AddMeasure(serial string, measure int32) {
 func (sm *sensormap) getInfoAllSensors(day int32) string {
 	sm.RLock()
 	defer sm.RUnlock()
+
+	if len(sm.db) == 0 {
+		return ""
+	}
+	
 	resChan := make(chan string, sm.len())
 	finalResChan := make(chan string, 1)
 
