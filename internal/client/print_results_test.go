@@ -3,22 +3,24 @@ package client
 import (
 	"bytes"
 	"fmt"
-	"github.com/jedib0t/go-pretty/v6/table"
 	"io"
-	"math"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
 )
 
-var d1 = ""
-var d2 = "sensor_1,Tuesday,30,10,20,"
-var d3 = "sensor_1,Sunday,-,-,-,sensor_1,monday,-,-,-,sensor_1,Tuesday,30,10,20,sensor_1,Wednesday,-,-,-,sensor_1,Thursday,-,-,-,sensor_1,Friday,-,-,-,sensor_1,Saturday,-,-,-,1"
+const (
+	LineSeperator = 226 //uint8 of '├'
+)
 
-var res1 = "+---------+-----+-----+-----+-----+\n| #SERIAL | DAY | MIN | MAX | AVG |\n+---------+-----+-----+-----+-----+\n+---------+-----+-----+-----+-----+\n"
-var res2 = "+----------+---------+-----+-----+-----+\n| #SERIAL  | DAY     | MIN | MAX | AVG |\n+----------+---------+-----+-----+-----+\n| sensor_1 | Tuesday | 30  | 10  | 20  |\n+----------+---------+-----+-----+-----+\n"
-var res3 = "+----------+-----------+-----+-----+-----+\n| #SERIAL  | DAY       | MIN | MAX | AVG |\n+----------+-----------+-----+-----+-----+\n| sensor_1 | Sunday    | -   | -   | -   |\n| sensor_1 | monday    | -   | -   | -   |\n| sensor_1 | Tuesday   | 30  | 10  | 20  |\n| sensor_1 | Wednesday | -   | -   | -   |\n| sensor_1 | Thursday  | -   | -   | -   |\n| sensor_1 | Friday    | -   | -   | -   |\n| sensor_1 | Saturday  | -   | -   | -   |\n+----------+-----------+-----+-----+-----+\n"
+var (
+	d1   = ""
+	d2   = "sensor_1,Tuesday,30,10,20,"
+	d3   = "sensor_1,Sunday,-,-,-,sensor_1,monday,-,-,-,sensor_1,Tuesday,30,10,20,sensor_1,Wednesday,-,-,-,sensor_1,Thursday,-,-,-,sensor_1,Friday,-,-,-,sensor_1,Saturday,-,-,-,1"
+	res1 = "┌─────────┬─────┬─────┬─────┬─────┐\n│ #SERIAL  │ DAY       │ MIN │ MAX │ AVG │\n├──────────┼───────────┼─────┼─────┼─────┤\n└──────────┴───────────┴─────┴─────┴─────┘\n"
+	res2 = "┌──────────┬───────────┬─────┬─────┬─────┐\n│ #SERIAL  │ DAY       │ MIN │ MAX │ AVG │\n├──────────┼───────────┼─────┼─────┼─────┤\n| sensor_1 | Tuesday | 30  | 10  | 20  |\n└──────────┴───────────┴─────┴─────┴─────┘\n"
+	res3 = "┌──────────┬───────────┬─────┬─────┬─────┐\n│ #SERIAL  │ DAY       │ MIN │ MAX │ AVG │\n├──────────┼───────────┼─────┼─────┼─────┤\n│ sensor_1 │ Sunday    │ -   │ -   │ -   │\n├──────────┼───────────┼─────┼─────┼─────┤\n│ sensor_1 │ monday    │ -   │ -   │ -   │\n├──────────┼───────────┼─────┼─────┼─────┤\n│ sensor_1 │ Tuesday   │ 30  │ 10  │ 20  │\n├──────────┼───────────┼─────┼─────┼─────┤\n│ sensor_1 │ Wednesday │ -   │ -   │ -   │\n├──────────┼───────────┼─────┼─────┼─────┤\n│ sensor_1 │ Thursday  │ -   │ -   │ -   │\n├──────────┼───────────┼─────┼─────┼─────┤\n│ sensor_1 │ Friday    │ -   │ -   │ -   │\n├──────────┼───────────┼─────┼─────┼─────┤\n│ sensor_1 │ Saturday  │ -   │ -   │ -   │\n└──────────┴───────────┴─────┴─────┴─────┘\n"
+)
 
 func execToString(f func(s string), args string) string {
 	old := os.Stdout // keep backup of the real stdout
@@ -71,35 +73,36 @@ func TestPrintTable(t *testing.T) {
 		testname := fmt.Sprintf("%v", tt.raw)
 		t.Run(testname, func(t *testing.T) {
 
-			res := execToString(printResult, tt.raw)
-			if res != tt.want {
+			res := execToString(PrintResult, tt.raw)
+			if compareTables(res, tt.want) {
 				t.Errorf("\ngot\n %v\n\nwant\n %v", res, tt.want)
 			}
 		})
 	}
 }
 
-func printResult(s string) {
-	arr := strings.Split(s, ",")
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.SetStyle(table.StyleLight)
-	t.AppendHeader(table.Row{"#SERIAL", "DAY", "MIN", "MAX", "AVG"})
-	for i := 0; i < len(arr)-1; i += 5 {
-		if arr[i] != "" && i > 0 {
-			t.AppendSeparator()
-		}
-		a, b, c := printHelper(arr[i+2], arr[i+3], arr[i+4])
-		t.AppendRows([]table.Row{
-			{arr[i], arr[i+1], a, b, c},
-		})
+//return value true -> not identical , fail test
+func compareTables(t1, t2 string) bool {
+	table1 := strings.Split(t1, "\n")
+	table2 := strings.Split(t2, "\n")
+	if len(table1) != len(table2) {
+		fmt.Println("Not identical len:", len(table1), len(table2))
+		return true
 	}
-	t.Render()
+	for index, _ := range table1 {
+		if index == 0 || index == len(table1)-1 {
+			continue
+		}
+		trimedt1 := removeSpaces(table1[index])
+		trimedt2 := removeSpaces(table2[index])
+		if trimedt1 != trimedt2 && trimedt1[0] != LineSeperator {
+			fmt.Println("Not identical lines:\nIn Result:\n", trimedt1, "\nExpected:\n", trimedt2)
+			return true
+		}
+	}
+	return false
 }
 
-func printHelper(min, max, avg string) (string, string, string) {
-	if min == strconv.Itoa(math.MinInt) {
-		return "-", "-", "-"
-	}
-	return min, max, avg
+func removeSpaces(s string) string {
+	return strings.Join(strings.Fields(s), "")
 }

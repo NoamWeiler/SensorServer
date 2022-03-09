@@ -30,12 +30,12 @@ func main() {
 
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
-		fmt.Printf("Streamer %d start\n", i)
-		go func() {
+		go func(num int) {
+			fmt.Printf("Streamer %d start\n", num)
 			defer wg.Done()
 			runStream()
-		}()
-		fmt.Printf("Streamer %d finished\n", i)
+			fmt.Printf("Streamer %d finished\n", num)
+		}(i)
 	}
 
 	wg.Wait()
