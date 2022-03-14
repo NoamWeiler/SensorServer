@@ -59,7 +59,7 @@ func UnpackError(e error) string {
 }
 
 func printHelper(min, max, avg string) (string, string, string) {
-	if min == strconv.Itoa(math.MinInt) {
+	if min == strconv.Itoa(math.MinInt32) {
 		return "-", "-", "-"
 	}
 	return min, max, avg

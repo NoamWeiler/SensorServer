@@ -18,68 +18,57 @@ type sensormap struct {
 	sync.RWMutex
 }
 
-type sensorDayDB struct {
-	max   int32
-	min   int32
-	count int32
-	sum   int32
-}
-
-type sensorWeekDB struct {
-	week []sensorDayDB
-}
-
 //day implementation
 func (s *sensorDayDB) getDayAvg() float32 {
-	count := s.count
+	count := s.Count
 	if count == 0 {
 		return 0.0
 	}
-	return float32(s.sum) / float32(count)
+	return float32(s.Sum) / float32(count)
 }
 
 func (s *sensorDayDB) getDayRes() (int32, int32, float32) {
-	return s.max, s.min, s.getDayAvg()
+	return s.Max, s.Min, s.getDayAvg()
 }
 
 func (s *sensorDayDB) AddMeasure(m int32) {
-	s.count++
-	s.sum += m
-	s.min = func(a, b int32) int32 {
+	s.Count++
+	s.Sum += m
+	s.Min = func(a, b int32) int32 {
 		if a < b {
 			return a
 		}
 		return b
-	}(s.min, m)
-	s.max = func(a, b int32) int32 {
+	}(s.Min, m)
+	s.Max = func(a, b int32) int32 {
 		if a > b {
 			return a
 		}
 		return b
-	}(s.max, m)
+	}(s.Max, m)
 }
 
 func (s *sensorDayDB) resetDay() {
-	s.max = math.MinInt32
-	s.min = math.MaxInt32
-	s.count = 0
-	s.sum = 0
+	s.Max = math.MinInt32
+	s.Min = math.MaxInt32
+	s.Count = 0
+	s.Sum = 0
 }
 
 // AddMeasure week implementation
 func (sw *sensorWeekDB) AddMeasure(m int32) {
 	dayIndex := int(time.Now().Weekday()) //Sunday=0
-	sw.week[dayIndex].AddMeasure(m)
+	sw.Week[dayIndex].AddMeasure(m)
 }
 
 func (sw *sensorWeekDB) cleanDay(weekday time.Weekday) {
 	d := int(weekday)
-	sw.week[d].resetDay()
+	sw.Week[d].resetDay()
 }
 
 func newSensorWeek() *sensorWeekDB {
-	sw := &sensorWeekDB{week: make([]sensorDayDB, 7)}
-	sww := sw.week
+	sw := &sensorWeekDB{Week: make([]sensorDayDB, 7)}
+	sww := sw.Week
 	for i := range sww {
 		sww[i].resetDay()
 	}
@@ -91,18 +80,18 @@ func (sw *sensorWeekDB) getInfoBySensorWeek(s string, d int32) string {
 	var output strings.Builder
 	switch d {
 	case 0, 1, 2, 3, 4, 5, 6:
-		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&sw.week[d], d)); err != nil {
+		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&sw.Week[d], d)); err != nil {
 			log.Println(err)
 		}
 	case 8: //all week
-		for i, d := range sw.week {
+		for i, d := range sw.Week {
 			if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&d, int32(i))); err != nil {
 				log.Println(err)
 			}
 		}
 	case 9: //today
 		today := int32(time.Now().Weekday())
-		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&sw.week[today], today)); err != nil {
+		if _, err := fmt.Fprintf(&output, ",%v", buildDayString(&sw.Week[today], today)); err != nil {
 			log.Println(err)
 		}
 	default:
@@ -159,6 +148,7 @@ func (sm *sensormap) getInfoBySensor(s string, d int32) string {
 
 func (sm *sensormap) GetInfo(serial string, daysBefore int32) string {
 	if serial == "all" {
+		log.Println(sm.getInfoAllSensors(daysBefore))
 		return sm.getInfoAllSensors(daysBefore)
 	}
 	return sm.getInfoBySensor(serial, daysBefore)

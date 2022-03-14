@@ -1,8 +1,8 @@
 package server
 
 import (
+	"SensorServer/pkg/databases/redis_db"
 	grpc_db "SensorServer/pkg/grpc_db"
-	In_memo_db "SensorServer/pkg/in_memory_db"
 	"context"
 	"fmt"
 	"google.golang.org/grpc"
@@ -147,7 +147,12 @@ func (s *GrpcServer) RunServer(parentCtx context.Context) {
 	sensorCount <- 1
 
 	//DB - used sensorDB interface
-	db = In_memo_db.SensorMap()
+	//db = In_memo_db.SensorMap()
+	db = redis_db.New()
+
+	if db == nil {
+		log.Fatalf("DB was not installed correctly")
+	}
 
 	log.Printf("server listening at %v", lis.Addr())
 

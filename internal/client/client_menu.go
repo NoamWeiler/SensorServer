@@ -179,7 +179,6 @@ forLoop:
 				}
 			case 2: //disconnect
 				disconnectClient(ctx)
-				fmt.Println("DFGDFG")
 			case 3: //exit
 				cancel()
 				disconnectClient(ctx) //disconnect by default on exit - my design
