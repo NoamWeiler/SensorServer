@@ -1,7 +1,6 @@
 package redis_db
 
 import (
-	"context"
 	"fmt"
 	"github.com/gomodule/redigo/redis"
 	"log"
@@ -12,19 +11,9 @@ import (
 )
 
 var (
-	GlobalDay    time.Weekday
-	ctx          context.Context
-	serials      []string
-	defaultDay   = sensorDayDB{Max: math.MinInt32, Min: math.MaxInt32, Count: 0, Sum: 0}
-	dayConvertor = map[time.Weekday]string{
-		time.Weekday(0): "Sunday",
-		time.Weekday(1): "Monday",
-		time.Weekday(2): "Tuesday",
-		time.Weekday(3): "Wednesday",
-		time.Weekday(4): "Thursday",
-		time.Weekday(5): "Friday",
-		time.Weekday(6): "Saturday",
-	}
+	GlobalDay  time.Weekday
+	serials    []string
+	defaultDay = sensorDayDB{Max: math.MinInt32, Min: math.MaxInt32, Count: 0, Sum: 0}
 )
 
 type redisDB struct {
@@ -33,7 +22,6 @@ type redisDB struct {
 
 func New() *redisDB {
 	GlobalDay = time.Now().Weekday()
-	ctx = context.TODO()
 	pool := &redis.Pool{
 		MaxIdle:     5,
 		IdleTimeout: 60 * time.Second,
@@ -128,7 +116,6 @@ func (rdb *redisDB) getInfoBySensor(s string, opt int) string {
 
 func (rdb *redisDB) AddMeasure(serial string, measure int32) {
 	if !rdb.isExists(serial) { //need to add to db new sensor
-		log.Println(serial, " doesn't exist!")
 		rdb.addNewSensor(serial)
 		serials = append(serials, serial)
 	}
@@ -174,7 +161,12 @@ func (rdb *redisDB) isExists(serial string) bool {
 
 func (rdb *redisDB) getDay(serial string, day time.Weekday, dest *sensorDayDB) error {
 	conn := rdb.pool.Get()
-	defer conn.Close()
+	defer func(conn redis.Conn) {
+		err := conn.Close()
+		if err != nil {
+			log.Println(err)
+		}
+	}(conn)
 	data, err := redis.String(conn.Do("HGET", serial, day))
 	if err != nil {
 		dest.resetDay()
@@ -280,7 +272,9 @@ func (rdb *redisDB) addNewSensor(serial string) {
 func (rdb *redisDB) addMeasureToday(serial string, measure int32) {
 	today := time.Now().Weekday()
 	var sensorDay sensorDayDB
-	rdb.getDay(serial, today, &sensorDay)
+	if err := rdb.getDay(serial, today, &sensorDay); err != nil {
+		log.Println(err)
+	}
 	sensorDay.calculateMeasure(measure)
 	if err := rdb.setDay(serial, today, sensorDay); err != nil {
 		log.Println("addMeasureToday", err)

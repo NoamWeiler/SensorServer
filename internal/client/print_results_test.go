@@ -89,7 +89,7 @@ func compareTables(t1, t2 string) bool {
 		fmt.Println("Not identical len:", len(table1), len(table2))
 		return true
 	}
-	for index, _ := range table1 {
+	for index := range table1 {
 		if index == 0 || index == len(table1)-1 {
 			continue
 		}
