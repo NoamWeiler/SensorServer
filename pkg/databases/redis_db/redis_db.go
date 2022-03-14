@@ -7,7 +7,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -19,16 +18,11 @@ const (
 var (
 	defaultDay = sensorDayDB{Max: math.MinInt32, Min: math.MaxInt32, Count: 0, Sum: 0}
 	GlobalDay  time.Weekday
-	serials    *sliceMutex
+	serials    *stringHash
 )
 
 type redisDB struct {
 	pool *redis.Pool
-}
-
-type sliceMutex struct {
-	arr []string
-	sync.RWMutex
 }
 
 func New() *redisDB {
@@ -38,7 +32,6 @@ func New() *redisDB {
 		MaxIdle:     MaxIdle,
 		IdleTimeout: 240 * time.Second,
 		Dial: func() (redis.Conn, error) {
-			//return redis.Dial("tcp", "localhost:6379")
 			c, err := redis.Dial("tcp", ":6379")
 			if err != nil {
 				panic(err.Error())
@@ -59,21 +52,23 @@ func New() *redisDB {
 
 func initSerials(pool *redis.Pool) {
 	conn := pool.Get()
-	serials = &sliceMutex{arr: make([]string, 1000)}
-	serials.Lock()
-	defer serials.Unlock()
 	defer func(conn redis.Conn) {
 		err := conn.Close()
 		if err != nil {
 			log.Println(err)
 		}
 	}(conn)
+	serials = NewStringHash()
+
 	data, err := redis.Strings(conn.Do("KEYS", "*"))
 	if err != nil {
 		log.Println("initSerials:", err)
 		return
 	}
-	serials.arr = data
+	//iterate over the data and add all values to HashSet
+	for _, serial := range data {
+		serials.Add(serial)
+	}
 }
 
 func (rdb *redisDB) GetInfo(serial string, daysBefore int32) string {
@@ -95,9 +90,9 @@ func (rdb *redisDB) buildDayString(serial string, d time.Weekday) string {
 func (rdb *redisDB) getInfoAllSensors(opt int) string {
 	var output strings.Builder
 	serials.RLock()
-	serialsList := serials.arr
+	serialsList := serials.stringMap //get a copy to save mutex time
 	serials.RUnlock()
-	for _, sensor := range serialsList {
+	for sensor, _ := range serialsList {
 		res := rdb.getInfoBySensor(sensor, opt)
 		if _, err := fmt.Fprintf(&output, "%v", res); err != nil {
 			log.Println(err)
@@ -139,11 +134,10 @@ func (rdb *redisDB) getInfoBySensor(s string, opt int) string {
 }
 
 func (rdb *redisDB) AddMeasure(serial string, measure int32) {
-	if !rdb.isExists(serial) { //need to add to db new sensor
+	//use cache to know if need to add new sensor to db
+	if !serials.exists(serial) {
 		rdb.addNewSensor(serial)
-		serials.Lock()
-		defer serials.Unlock()
-		serials.arr = append(serials.arr, serial)
+		serials.Add(serial)
 	}
 	rdb.addMeasureToday(serial, measure)
 }
