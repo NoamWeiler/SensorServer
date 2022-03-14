@@ -7,25 +7,44 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
+const (
+	MaxActive = 1000 //max number of connections
+	MaxIdle   = 500
+)
+
 var (
-	GlobalDay  time.Weekday
-	serials    []string
 	defaultDay = sensorDayDB{Max: math.MinInt32, Min: math.MaxInt32, Count: 0, Sum: 0}
+	GlobalDay  time.Weekday
+	serials    *sliceMutex
 )
 
 type redisDB struct {
 	pool *redis.Pool
 }
 
+type sliceMutex struct {
+	arr []string
+	sync.RWMutex
+}
+
 func New() *redisDB {
 	GlobalDay = time.Now().Weekday()
 	pool := &redis.Pool{
-		MaxIdle:     5,
-		IdleTimeout: 60 * time.Second,
-		Dial:        func() (redis.Conn, error) { return redis.Dial("tcp", "localhost:6379") },
+		MaxActive:   MaxActive,
+		MaxIdle:     MaxIdle,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			//return redis.Dial("tcp", "localhost:6379")
+			c, err := redis.Dial("tcp", ":6379")
+			if err != nil {
+				panic(err.Error())
+			}
+			return c, err
+		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			if time.Since(t) < time.Minute {
 				return nil
@@ -40,6 +59,9 @@ func New() *redisDB {
 
 func initSerials(pool *redis.Pool) {
 	conn := pool.Get()
+	serials = &sliceMutex{arr: make([]string, 1000)}
+	serials.Lock()
+	defer serials.Unlock()
 	defer func(conn redis.Conn) {
 		err := conn.Close()
 		if err != nil {
@@ -51,7 +73,7 @@ func initSerials(pool *redis.Pool) {
 		log.Println("initSerials:", err)
 		return
 	}
-	serials = data
+	serials.arr = data
 }
 
 func (rdb *redisDB) GetInfo(serial string, daysBefore int32) string {
@@ -72,7 +94,10 @@ func (rdb *redisDB) buildDayString(serial string, d time.Weekday) string {
 
 func (rdb *redisDB) getInfoAllSensors(opt int) string {
 	var output strings.Builder
-	for _, sensor := range serials {
+	serials.RLock()
+	serialsList := serials.arr
+	serials.RUnlock()
+	for _, sensor := range serialsList {
 		res := rdb.getInfoBySensor(sensor, opt)
 		if _, err := fmt.Fprintf(&output, "%v", res); err != nil {
 			log.Println(err)
@@ -110,14 +135,15 @@ func (rdb *redisDB) getInfoBySensor(s string, opt int) string {
 		log.Println("getInfoBySensor - error: wrong day option:", opt)
 		return ""
 	}
-	fmt.Printf("\n---\n%s%s", s, output.String())
 	return fmt.Sprintf("%s%s", s, output.String())
 }
 
 func (rdb *redisDB) AddMeasure(serial string, measure int32) {
 	if !rdb.isExists(serial) { //need to add to db new sensor
 		rdb.addNewSensor(serial)
-		serials = append(serials, serial)
+		serials.Lock()
+		defer serials.Unlock()
+		serials.arr = append(serials.arr, serial)
 	}
 	rdb.addMeasureToday(serial, measure)
 }
@@ -273,11 +299,11 @@ func (rdb *redisDB) addMeasureToday(serial string, measure int32) {
 	today := time.Now().Weekday()
 	var sensorDay sensorDayDB
 	if err := rdb.getDay(serial, today, &sensorDay); err != nil {
-		log.Println(err)
+		log.Println("addMeasureToday:\t", err)
 	}
 	sensorDay.calculateMeasure(measure)
 	if err := rdb.setDay(serial, today, sensorDay); err != nil {
-		log.Println("addMeasureToday", err)
+		log.Println("addMeasureToday:\t", err)
 	}
 }
 func (sd *sensorDayDB) calculateMeasure(m int32) {
