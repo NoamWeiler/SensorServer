@@ -92,7 +92,7 @@ func (rdb *redisDB) getInfoAllSensors(opt int) string {
 	serials.RLock()
 	serialsList := serials.stringMap //get a copy to save mutex time
 	serials.RUnlock()
-	for sensor, _ := range serialsList {
+	for sensor := range serialsList {
 		res := rdb.getInfoBySensor(sensor, opt)
 		if _, err := fmt.Fprintf(&output, "%v", res); err != nil {
 			log.Println(err)
@@ -143,7 +143,11 @@ func (rdb *redisDB) AddMeasure(serial string, measure int32) {
 }
 
 func (rdb *redisDB) DayCleanup() {
-	//TODO
+	today := time.Now().Weekday()
+	if today != GlobalDay {
+		rdb.dayCleanup(today)
+		GlobalDay = today
+	}
 }
 
 //inner functions
@@ -162,21 +166,6 @@ func (rdb *redisDB) setDay(serial string, day time.Weekday, sd sensorDayDB) erro
 		return err
 	}
 	return nil
-}
-
-func (rdb *redisDB) isExists(serial string) bool {
-	conn := rdb.pool.Get()
-	defer func(conn redis.Conn) {
-		err := conn.Close()
-		if err != nil {
-			log.Println(err)
-		}
-	}(conn)
-	reply, err := redis.Bool(conn.Do("HEXISTS", serial, "Sunday"))
-	if err != nil {
-		log.Println("isExists - Error:", err)
-	}
-	return reply
 }
 
 func (rdb *redisDB) getDay(serial string, day time.Weekday, dest *sensorDayDB) error {
@@ -309,4 +298,15 @@ func (sd *sensorDayDB) calculateMeasure(m int32) {
 	}
 	sd.Count++
 	sd.Sum += m
+}
+
+func (rdb *redisDB) dayCleanup(today time.Weekday) {
+	serials.RLock()
+	defer serials.RUnlock()
+	for serial := range serials.stringMap {
+		err := rdb.setDay(serial, today, defaultDay)
+		if err != nil {
+			log.Println("[dayCleanup]\t", err)
+		}
+	}
 }
