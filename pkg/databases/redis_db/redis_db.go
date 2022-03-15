@@ -26,7 +26,8 @@ type redisDB struct {
 }
 
 func New() *redisDB {
-	GlobalDay = time.Now().Weekday()
+	GlobalDay = time.Weekday(0)
+	//GlobalDay = time.Now().Weekday()
 	pool := &redis.Pool{
 		MaxActive:   MaxActive,
 		MaxIdle:     MaxIdle,
@@ -142,11 +143,13 @@ func (rdb *redisDB) AddMeasure(serial string, measure int32) {
 	rdb.addMeasureToday(serial, measure)
 }
 
-func (rdb *redisDB) DayCleanup() {
+func (rdb *redisDB) DayCleanup() { //TODO - need to think about how to run it one time, and not for all request in the same time
 	today := time.Now().Weekday()
 	if today != GlobalDay {
+		log.Println("[DayCleanup]\ttoday:", today, "\tbefore:", GlobalDay)
 		rdb.dayCleanup(today)
 		GlobalDay = today
+		log.Println("[DayCleanup]\ttoday:", today, "\tafter:", GlobalDay)
 	}
 }
 

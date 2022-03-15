@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/bojand/ghz v0.106.1
 	github.com/go-redis/redis/v8 v8.11.4
+	github.com/gomodule/redigo v1.8.8
 	github.com/jedib0t/go-pretty/v6 v6.2.7
 	github.com/pkg/profile v1.6.0
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
@@ -28,7 +29,6 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.1.0 // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/gomodule/redigo v1.8.8 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect

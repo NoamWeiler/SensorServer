@@ -12,6 +12,7 @@ import (
 
 var (
 	verbose    = flag.Bool("v", false, "Verbose mode")
+	port       = flag.Int("port", 50051, "GRPC port")
 	grpcServer server.ProtocolServer
 	sigHandler server.SignalHandler
 )
@@ -25,7 +26,7 @@ func main() {
 	//GRPC server
 	g.Go(func() error {
 		grpcServer = server.NewServer(verbose)
-		grpcServer.RunServer(gctx)
+		grpcServer.RunServer(gctx, *port)
 		return nil
 	})
 

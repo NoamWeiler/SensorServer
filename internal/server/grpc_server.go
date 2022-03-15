@@ -15,7 +15,7 @@ import (
 // ProtocolServer interface to represent a server
 type ProtocolServer interface {
 	newServer()
-	RunServer(ctx context.Context)
+	RunServer(context.Context, int)
 	cleanup()
 }
 
@@ -44,7 +44,6 @@ var (
 const (
 	adminName = "yochbad"
 	adminPass = "123"
-	grpcPort  = 50051
 )
 
 func returnError(s string) error {
@@ -130,13 +129,13 @@ func (s *GrpcServer) newServer() {
 }
 
 // RunServer implementation of ProtocolServer interface
-func (s *GrpcServer) RunServer(parentCtx context.Context) {
+func (s *GrpcServer) RunServer(parentCtx context.Context, port int) {
 	//attach the goroutine's context to the goroutine of the server
 	_, cancelServer := context.WithCancel(parentCtx)
 	defer cancelServer()
 
 	var err error
-	lis, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", grpcPort))
+	lis, err = net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}

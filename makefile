@@ -17,5 +17,11 @@ run_server_debug:
 run_server:
 	go run cmd/server.go
 
+run_multiple_servers:
+	./cmd/run_servers.sh
+
+shutdown_multiple_servers:
+	./cmd/shutdown_servers.sh
+
 run_stream:
 	go run cmd/sensor.go
