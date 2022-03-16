@@ -7,8 +7,8 @@ import (
 	"sync"
 )
 
-func runStream() {
-	_, err := runner.Run(
+func runStream() int {
+	report, err := runner.Run(
 		"SensorServer.SensorStream.SensorMeasure",
 		"localhost:50051",
 		runner.WithProtoFile("./pkg/grpc_db/grpc_db.proto", []string{}),
@@ -22,7 +22,7 @@ func runStream() {
 		os.Exit(1)
 	}
 
-	//fmt.Println("RESULT:\ncounter:", report.Count, "\nend reason:", report.EndReason)
+	return int(report.Count)
 }
 func main() {
 
@@ -33,8 +33,7 @@ func main() {
 		go func(num int) {
 			fmt.Printf("Streamer %d start\n", num)
 			defer wg.Done()
-			runStream()
-			fmt.Printf("Streamer %d finished\n", num)
+			fmt.Printf("Streamer %d finished, total:%d\n", num, runStream())
 		}(i)
 	}
 

@@ -24,4 +24,4 @@ shutdown_multiple_servers:
 	./cmd/shutdown_servers.sh
 
 run_stream:
-	go run cmd/sensor.go
+	go run cmd/stream.go
