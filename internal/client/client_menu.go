@@ -20,10 +20,10 @@ const (
 )
 
 var (
-	isConnected bool
-	c           grpc_db.ClientInfoClient
-	addr        = flag.String("addr", "localhost:50051", "the address to connect to")
-	verbose     = flag.Bool("v", false, "Verbose mode")
+	isConnected      bool
+	clientInfoClient grpc_db.ClientInfoClient
+	addr             = flag.String("addr", "localhost:50051", "the address to connect to")
+	verbose          = flag.Bool("v", false, "Verbose mode")
 )
 
 func dayOpt() int {
@@ -141,12 +141,12 @@ func ConnectClient() *grpc.ClientConn {
 	if err != nil {
 		log.Fatalf("did not connect: %v", err)
 	}
-	c = grpc_db.NewClientInfoClient(conn)
+	clientInfoClient = grpc_db.NewClientInfoClient(conn)
 	return conn
 }
 
 func disconnectClient(ctx context.Context) {
-	r, err := c.DisconnectClient(ctx, &grpc_db.DisConnReq{})
+	r, err := clientInfoClient.DisconnectClient(ctx, &grpc_db.DisConnReq{})
 	if err != nil {
 		fmt.Println("Error: ", UnpackError(err))
 	} else {
@@ -161,7 +161,7 @@ forLoop:
 		ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 		if !isConnected {
 			cr := NewConnReq()
-			r, err := c.ConnectClient(ctx, cr)
+			r, err := clientInfoClient.ConnectClient(ctx, cr)
 			isConnected = VerifyLogin(r, err)
 		} else {
 			switch ShowMainMenu() {
@@ -170,7 +170,7 @@ forLoop:
 				if err != nil && fmt.Sprintf("%v", err) == UserExit {
 					continue //got error if userExit from menu
 				}
-				res, err := c.GetInfo(ctx, ir)
+				res, err := clientInfoClient.GetInfo(ctx, ir)
 				if err != nil {
 					fmt.Println(err)
 				} else { //got response from server

@@ -4,12 +4,10 @@ grpc_db_set:
 ftw:
 	go get google.golang.org/protobuf
 	go get google.golang.org/grpc
-	go get google.golang.org/grpc
 	go get github.com/aws/aws-sdk-go/aws
 
 run_client:
 	go run cmd/client.go
-
 
 run_server_debug:
 	go run -race cmd/server.go -v
@@ -20,8 +18,14 @@ run_server:
 run_multiple_servers:
 	./cmd/run_servers.sh
 
+run_multiple_servers_debug:
+	./cmd/run_servers.sh -v
+
 shutdown_multiple_servers:
 	./cmd/shutdown_servers.sh
 
 run_stream:
 	go run cmd/stream.go
+
+run_sensors:
+	go run cmd/sensor_simulator.go

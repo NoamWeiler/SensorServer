@@ -39,6 +39,7 @@ var (
 	lis              net.Listener
 	db               sensorDB
 	verbose          *bool
+	port             int
 )
 
 const (
@@ -117,7 +118,7 @@ func (s *GrpcServer) ConnectSensor(ctx context.Context, in *grpc_db.ConnSensorRe
 
 func (s *GrpcServer) SensorMeasure(ctx context.Context, in *grpc_db.Measure) (*grpc_db.MeasureRes, error) {
 	f := "SensorMeasure"
-	debug(f, fmt.Sprintf("got measure=%d from %s", in.GetM(), in.GetSerial()))
+	debug(f, fmt.Sprintf("%d\tgot measure=%d from %s", port, in.GetM(), in.GetSerial()))
 	db.DayCleanup()
 	//unpack request for sensorDB interface
 	db.AddMeasure(in.GetSerial(), in.GetM())
@@ -129,7 +130,8 @@ func (s *GrpcServer) newServer() {
 }
 
 // RunServer implementation of ProtocolServer interface
-func (s *GrpcServer) RunServer(parentCtx context.Context, port int) {
+func (s *GrpcServer) RunServer(parentCtx context.Context, serverPort int) {
+	port = serverPort
 	//attach the goroutine's context to the goroutine of the server
 	_, cancelServer := context.WithCancel(parentCtx)
 	defer cancelServer()
