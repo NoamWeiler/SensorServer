@@ -17,7 +17,9 @@ make run_client </br>
 username/password: yochbad/123
 
 ## Run stream of sensors
-* From root run: </br>
+* Run stream for a single server: </br>
 make run_stream </br></br>
+* Run sensors simulator (with client load-balancer) : </br>
+make run_sensors_simulator </br></br>
 * Testing responses per second:</br>
 ghz --insecure --proto ./pkg/grpc_db/grpc_db.proto --call SensorServer.SensorStream.SensorMeasure -d '[{"m":13,"serial":"ser345345"}]' 0.0.0.0:50051 -x 1s
