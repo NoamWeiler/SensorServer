@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-if [[ ! -z "$1" ]] && [[ "$1"=="-v" ]]; then
+if [[ ! -z "$1" ]] && [[ "$1" == "-v" ]]; then
   echo "Running 3 server instances with debug mode"
   go run cmd/server.go -port=50051 -v &
   go run cmd/server.go -port=50052 -v &

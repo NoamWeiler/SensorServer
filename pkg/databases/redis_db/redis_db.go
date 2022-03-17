@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	MaxActive = 1000 //max number of connections
-	MaxIdle   = 500
+	MaxActive = 10000 //max number of connections
+	MaxIdle   = 10000
 )
 
 var (
@@ -183,13 +183,13 @@ func (rdb *redisDB) getDay(serial string, day time.Weekday, dest *sensorDayDB) e
 	data, err := redis.String(conn.Do("HGET", serial, day))
 	if err != nil {
 		dest.resetDay()
-		return fmt.Errorf("getDay - %v", err)
+		return fmt.Errorf("getDay HGET error- %v", err)
 	}
 
 	err = dest.Scan(data)
 	if err != nil {
 		dest.resetDay()
-		return fmt.Errorf("getDay - %v", err)
+		return fmt.Errorf("getDay ScanDay error- %v", err)
 	}
 	return nil
 }

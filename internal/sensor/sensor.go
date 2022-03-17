@@ -7,7 +7,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
-	"math/rand"
 	"time"
 )
 
@@ -18,11 +17,6 @@ type sensor struct {
 	err          string
 	conn         *grpc.ClientConn
 	streamClient grpc_db.SensorStreamClient
-}
-
-func randMeasure() int32 {
-	r1 := rand.New(rand.NewSource(time.Now().UnixNano()))
-	return r1.Int31() % 30
 }
 
 func (s *sensor) sendMeasure() error {

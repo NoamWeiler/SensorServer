@@ -4,7 +4,6 @@ import (
 	"SensorServer/internal/sensor"
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -13,7 +12,7 @@ import (
 )
 
 var (
-	numOfSensors = flag.Int("n", 1, "number of sensors in simulator")
+	numOfSensors = flag.Int("n", 10, "number of sensors in simulator")
 )
 
 func main() {
@@ -22,14 +21,11 @@ func main() {
 	defer cancel()
 	wg := &sync.WaitGroup{}
 
-	for i := 0; i < *numOfSensors; i++ {
+	go func() {
 		wg.Add(1)
-		go func(str string) {
-			s := sensor.Init(str)
-			defer wg.Done()
-			s.Run(ctx)
-		}(fmt.Sprintf("sensor_%d", i))
-	}
+		defer wg.Done()
+		sensor.RunSensorWorkingPool(ctx, *numOfSensors)
+	}()
 
 	//signal handler
 	go func() {
@@ -37,7 +33,6 @@ func main() {
 		defer wg.Done()
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
-		log.Println("\nsignal handler is up")
 		sig := <-sigChan
 		log.Println("\ninterrupted by:", sig)
 		cancel()

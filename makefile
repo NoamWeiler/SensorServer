@@ -27,5 +27,5 @@ shutdown_multiple_servers:
 run_stream:
 	go run cmd/stream.go
 
-run_sensors:
+run_sensors_simulator:
 	go run cmd/sensor_simulator.go

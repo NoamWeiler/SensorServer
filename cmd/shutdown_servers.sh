@@ -13,4 +13,4 @@ kill -9 "$pid2"
 kill -9 "$pid3"
 
 
-echo "All servers are down"
+echo "Shutting down all servers"
